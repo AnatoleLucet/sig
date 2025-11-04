@@ -1,0 +1,2 @@
+- level-based topological execution ordering
+- memo value comparison
