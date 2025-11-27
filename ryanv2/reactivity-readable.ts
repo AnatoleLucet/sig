@@ -19,12 +19,12 @@
  */
 enum ReactiveFlags {
   None = 0,
-  Check = 1 << 0,           // Node needs to check if dependencies changed
-  Dirty = 1 << 1,           // Node needs recomputation
+  Check = 1 << 0, // Node needs to check if dependencies changed
+  Dirty = 1 << 1, // Node needs recomputation
   RecomputingDeps = 1 << 2, // Currently recomputing dependencies
-  InHeap = 1 << 3,          // Node is in execution heap
-  InHeapHeight = 1 << 4,    // Node is in heap for height adjustment
-  Zombie = 1 << 5,          // Node is marked for disposal
+  InHeap = 1 << 3, // Node is in execution heap
+  InHeapHeight = 1 << 4, // Node is in heap for height adjustment
+  Zombie = 1 << 5, // Node is marked for disposal
 }
 
 /**
@@ -32,8 +32,8 @@ enum ReactiveFlags {
  */
 enum StatusFlags {
   None = 0,
-  Pending = 1 << 0,       // Async operation in progress
-  Error = 1 << 1,         // Error occurred
+  Pending = 1 << 0, // Async operation in progress
+  Error = 1 << 1, // Error occurred
   Uninitialized = 1 << 2, // Never computed yet
 }
 
@@ -42,18 +42,18 @@ enum StatusFlags {
  */
 enum EffectType {
   Render = 1, // Render effects run during render phase
-  User = 2,   // User effects run after render
+  User = 2, // User effects run after render
 }
 
 /**
  * Bidirectional link between a dependency (observable) and subscriber (computed/effect)
  */
 interface DependencyLink {
-  _dep: ReactiveNode;        // The dependency being observed
-  _sub: ReactiveNode;        // The subscriber observing
-  _nextDep: DependencyLink | null;  // Next in subscriber's dependency list
-  _prevSub: DependencyLink | null;  // Previous in dependency's subscriber list
-  _nextSub: DependencyLink | null;  // Next in dependency's subscriber list
+  _dep: ReactiveNode; // The dependency being observed
+  _sub: ReactiveNode; // The subscriber observing
+  _nextDep: DependencyLink | null; // Next in subscriber's dependency list
+  _prevSub: DependencyLink | null; // Previous in dependency's subscriber list
+  _nextSub: DependencyLink | null; // Next in dependency's subscriber list
 }
 
 /**
@@ -62,19 +62,19 @@ interface DependencyLink {
 interface ReactiveNode {
   // Value state
   _value: any;
-  _pendingValue: any;          // Value awaiting commit
+  _pendingValue: any; // Value awaiting commit
   _equals?: (a: any, b: any) => boolean;
 
   // Dependency graph
-  _deps: DependencyLink | null;      // List of dependencies
-  _depsTail: DependencyLink | null;  // Tail of dependency list
-  _subs: DependencyLink | null;      // List of subscribers
-  _subsTail: DependencyLink | null;  // Tail of subscriber list
+  _deps: DependencyLink | null; // List of dependencies
+  _depsTail: DependencyLink | null; // Tail of dependency list
+  _subs: DependencyLink | null; // List of subscribers
+  _subsTail: DependencyLink | null; // Tail of subscriber list
 
   // Heap membership (for height-ordered execution)
   _nextHeap?: ReactiveNode;
   _prevHeap: ReactiveNode | null;
-  _height: number;             // Topological depth in dependency graph
+  _height: number; // Topological depth in dependency graph
 
   // Tree structure (parent/child relationships)
   _parent: ReactiveNode | null;
@@ -87,9 +87,9 @@ interface ReactiveNode {
   _pendingFirstChild: ReactiveNode | null;
 
   // Execution state
-  _fn?: (prevValue: any) => any;  // Computation function
+  _fn?: (prevValue: any) => any; // Computation function
   _flags: ReactiveFlags;
-  _time: number;               // Last update time (clock tick)
+  _time: number; // Last update time (clock tick)
 
   // Async state
   _statusFlags: StatusFlags;
@@ -102,7 +102,7 @@ interface ReactiveNode {
   _childCount?: number;
   _queue?: Queue;
   _context?: Record<symbol, any>;
-  _optimistic?: boolean;       // Updates immediately without batching
+  _optimistic?: boolean; // Updates immediately without batching
   _pureWrite?: boolean;
   _unobserved?: () => void;
 
@@ -137,10 +137,10 @@ interface ReactiveNode {
  * Transition for coordinating async operations
  */
 interface Transition {
-  time: number;                    // Clock tick when started
-  pendingNodes: ReactiveNode[];    // Nodes with pending values
-  asyncNodes: ReactiveNode[];      // Nodes that threw NotReadyError
-  queues: [Function[], Function[]];//queues for render and user effects
+  time: number; // Clock tick when started
+  pendingNodes: ReactiveNode[]; // Nodes with pending values
+  asyncNodes: ReactiveNode[]; // Nodes that threw NotReadyError
+  queues: [Function[], Function[]]; //queues for render and user effects
 }
 
 /**
@@ -183,7 +183,9 @@ class NoOwnerError extends Error {
  */
 class ContextNotFoundError extends Error {
   constructor() {
-    super("Context must either be created with a default value or a value must be provided before accessing it.");
+    super(
+      "Context must either be created with a default value or a value must be provided before accessing it.",
+    );
   }
 }
 
@@ -296,9 +298,10 @@ function insertIntoHeap(node: ReactiveNode, heap: Heap): void {
 
   // Upgrade Check to Dirty
   if (flags & ReactiveFlags.Check) {
-    node._flags = (flags & ~(ReactiveFlags.Check | ReactiveFlags.Dirty))
-                  | ReactiveFlags.Dirty
-                  | ReactiveFlags.InHeap;
+    node._flags =
+      (flags & ~(ReactiveFlags.Check | ReactiveFlags.Dirty)) |
+      ReactiveFlags.Dirty |
+      ReactiveFlags.InHeap;
   } else {
     node._flags = flags | ReactiveFlags.InHeap;
   }
@@ -315,7 +318,12 @@ function insertIntoHeap(node: ReactiveNode, heap: Heap): void {
 function insertIntoHeapHeight(node: ReactiveNode, heap: Heap): void {
   const flags = node._flags;
 
-  if (flags & (ReactiveFlags.InHeap | ReactiveFlags.RecomputingDeps | ReactiveFlags.InHeapHeight)) {
+  if (
+    flags &
+    (ReactiveFlags.InHeap |
+      ReactiveFlags.RecomputingDeps |
+      ReactiveFlags.InHeapHeight)
+  ) {
     return;
   }
 
@@ -343,10 +351,10 @@ function deleteFromHeap(node: ReactiveNode, heap: Heap): void {
   } else {
     // Multiple nodes - update links
     const next = node._nextHeap;
-    const headAtHeight = heap._heap[height];
-    const end = next ?? headAtHeight!;
+    const head = heap._heap[height];
+    const end = next ?? head!;
 
-    if (node === headAtHeight) {
+    if (node === head) {
       // Removing head
       heap._heap[height] = next;
     } else {
@@ -383,7 +391,10 @@ function markHeap(heap: Heap): void {
 /**
  * Mark a node and its subscribers as needing updates
  */
-function markNode(element: ReactiveNode, newState: ReactiveFlags = ReactiveFlags.Dirty): void {
+function markNode(
+  element: ReactiveNode,
+  newState: ReactiveFlags = ReactiveFlags.Dirty,
+): void {
   const flags = element._flags;
 
   // Already marked with this state or dirtier
@@ -391,7 +402,8 @@ function markNode(element: ReactiveNode, newState: ReactiveFlags = ReactiveFlags
     return;
   }
 
-  element._flags = (flags & ~(ReactiveFlags.Check | ReactiveFlags.Dirty)) | newState;
+  element._flags =
+    (flags & ~(ReactiveFlags.Check | ReactiveFlags.Dirty)) | newState;
 
   // Mark all subscribers as needing check
   for (let link = element._subs; link !== null; link = link._nextSub) {
@@ -400,7 +412,11 @@ function markNode(element: ReactiveNode, newState: ReactiveFlags = ReactiveFlags
 
   // Also mark subscribers of firewall children
   if (element._child !== null) {
-    for (let child = element._child; child !== null; child = child._nextChild!) {
+    for (
+      let child = element._child;
+      child !== null;
+      child = child._nextChild!
+    ) {
       for (let link = child._subs; link !== null; link = link._nextSub) {
         markNode(link._sub, ReactiveFlags.Check);
       }
@@ -411,7 +427,10 @@ function markNode(element: ReactiveNode, newState: ReactiveFlags = ReactiveFlags
 /**
  * Process all nodes in heap in height order (topological sort)
  */
-function runHeap(heap: Heap, recomputeFunc: (node: ReactiveNode) => void): void {
+function runHeap(
+  heap: Heap,
+  recomputeFunc: (node: ReactiveNode) => void,
+): void {
   heap._marked = false;
 
   for (heap._min = 0; heap._min <= heap._max; heap._min++) {
@@ -459,7 +478,11 @@ function adjustHeight(element: ReactiveNode, heap: Heap): void {
   if (element._height !== newHeight) {
     element._height = newHeight;
 
-    for (let subLink = element._subs; subLink !== null; subLink = subLink._nextSub) {
+    for (
+      let subLink = element._subs;
+      subLink !== null;
+      subLink = subLink._nextSub
+    ) {
       insertIntoHeapHeight(subLink._sub, heap);
     }
   }
@@ -497,9 +520,11 @@ function link(dependency: ReactiveNode, subscriber: ReactiveNode): void {
   const previousSub = dependency._subsTail;
 
   // Check if already linked from subscriber side
-  if (previousSub !== null &&
-      previousSub._sub === subscriber &&
-      (!isRecomputing || isValidLink(previousSub, subscriber))) {
+  if (
+    previousSub !== null &&
+    previousSub._sub === subscriber &&
+    (!isRecomputing || isValidLink(previousSub, subscriber))
+  ) {
     return;
   }
 
@@ -532,7 +557,10 @@ function link(dependency: ReactiveNode, subscriber: ReactiveNode): void {
 /**
  * Check if a link is still valid (in subscriber's current dependency list)
  */
-function isValidLink(checkLink: DependencyLink, subscriber: ReactiveNode): boolean {
+function isValidLink(
+  checkLink: DependencyLink,
+  subscriber: ReactiveNode,
+): boolean {
   const depsTail = subscriber._depsTail;
 
   if (depsTail !== null) {
@@ -719,8 +747,10 @@ class Queue {
     if (mask & StatusFlags.Pending) {
       if (flags & StatusFlags.Pending) {
         // Track async node in transition
-        if (activeTransition &&
-            !activeTransition.asyncNodes.includes(node._error.cause)) {
+        if (
+          activeTransition &&
+          !activeTransition.asyncNodes.includes(node._error.cause)
+        ) {
           activeTransition.asyncNodes.push(node._error.cause);
         }
       }
@@ -864,13 +894,16 @@ Queue._dispose = disposeChildren;
  */
 function recompute(element: ReactiveNode, create = false): void {
   // Determine which heap to use based on zombie state
-  const heap = element._flags & ReactiveFlags.Zombie ? pendingQueue : dirtyQueue;
+  const heap =
+    element._flags & ReactiveFlags.Zombie ? pendingQueue : dirtyQueue;
   deleteFromHeap(element, heap);
 
   // Handle pending disposal
-  if (element._pendingValue !== NOT_PENDING ||
-      element._pendingFirstChild ||
-      element._pendingDisposal) {
+  if (
+    element._pendingValue !== NOT_PENDING ||
+    element._pendingFirstChild ||
+    element._pendingDisposal
+  ) {
     disposeChildren(element);
   } else {
     markDisposal(element);
@@ -887,7 +920,10 @@ function recompute(element: ReactiveNode, create = false): void {
   element._depsTail = null;
   element._flags = ReactiveFlags.RecomputingDeps;
 
-  let value = element._pendingValue === NOT_PENDING ? element._value : element._pendingValue;
+  let value =
+    element._pendingValue === NOT_PENDING
+      ? element._value
+      : element._pendingValue;
   const oldHeight = element._height;
   element._time = clock;
 
@@ -901,7 +937,11 @@ function recompute(element: ReactiveNode, create = false): void {
   } catch (e) {
     if (e instanceof NotReadyError) {
       // Async operation - mark as pending
-      setStatusFlags(element, (prevStatusFlags & ~StatusFlags.Error) | StatusFlags.Pending, e);
+      setStatusFlags(
+        element,
+        (prevStatusFlags & ~StatusFlags.Error) | StatusFlags.Pending,
+        e,
+      );
     } else {
       // Other error
       setError(element, e);
@@ -929,14 +969,17 @@ function recompute(element: ReactiveNode, create = false): void {
   }
 
   // Check if value or status changed
-  const valueChanged = !element._equals ||
-                      !element._equals(
-                        element._pendingValue === NOT_PENDING ? element._value : element._pendingValue,
-                        value
-                      );
+  const valueChanged =
+    !element._equals ||
+    !element._equals(
+      element._pendingValue === NOT_PENDING
+        ? element._value
+        : element._pendingValue,
+      value,
+    );
 
-  const statusFlagsChanged = element._statusFlags !== prevStatusFlags ||
-                             element._error !== prevError;
+  const statusFlagsChanged =
+    element._statusFlags !== prevStatusFlags || element._error !== prevError;
 
   if (valueChanged || statusFlagsChanged) {
     if (valueChanged) {
@@ -957,14 +1000,24 @@ function recompute(element: ReactiveNode, create = false): void {
     }
 
     // Mark subscribers as dirty
-    for (let subLink = element._subs; subLink !== null; subLink = subLink._nextSub) {
-      const subHeap = subLink._sub._flags & ReactiveFlags.Zombie ? pendingQueue : dirtyQueue;
+    for (
+      let subLink = element._subs;
+      subLink !== null;
+      subLink = subLink._nextSub
+    ) {
+      const subHeap =
+        subLink._sub._flags & ReactiveFlags.Zombie ? pendingQueue : dirtyQueue;
       insertIntoHeap(subLink._sub, subHeap);
     }
   } else if (element._height !== oldHeight) {
     // Height changed but value didn't
-    for (let subLink = element._subs; subLink !== null; subLink = subLink._nextSub) {
-      const subHeap = subLink._sub._flags & ReactiveFlags.Zombie ? pendingQueue : dirtyQueue;
+    for (
+      let subLink = element._subs;
+      subLink !== null;
+      subLink = subLink._nextSub
+    ) {
+      const subHeap =
+        subLink._sub._flags & ReactiveFlags.Zombie ? pendingQueue : dirtyQueue;
       insertIntoHeapHeight(subLink._sub, subHeap);
     }
   }
@@ -978,7 +1031,8 @@ function updateIfNecessary(element: ReactiveNode): void {
     // Check all dependencies
     for (let depLink = element._deps; depLink; depLink = depLink._nextDep) {
       const dependency = depLink._dep;
-      const actualDep = "_owner" in dependency ? dependency._owner! : dependency;
+      const actualDep =
+        "_owner" in dependency ? dependency._owner! : dependency;
 
       if ("_fn" in actualDep) {
         updateIfNecessary(actualDep);
@@ -1037,7 +1091,9 @@ function read(element: ReactiveNode): any {
   if (pendingCheck) {
     if (!element._pendingCheck) {
       element._pendingCheck = signal(
-        (element._statusFlags & StatusFlags.Pending) !== 0 || !!element._transition || false
+        (element._statusFlags & StatusFlags.Pending) !== 0 ||
+          !!element._transition ||
+          false,
       );
       element._pendingCheck._optimistic = true;
       element._pendingCheck._set = (v) => setSignal(element._pendingCheck!, v);
@@ -1053,12 +1109,14 @@ function read(element: ReactiveNode): any {
   if (pendingValueCheck) {
     if (!element._pendingSignal) {
       element._pendingSignal = signal(
-        element._pendingValue === NOT_PENDING ? element._value : element._pendingValue
+        element._pendingValue === NOT_PENDING
+          ? element._value
+          : element._pendingValue,
       );
       element._pendingSignal._optimistic = true;
       element._pendingSignal._set = (v) =>
         queueMicrotask(() =>
-          queueMicrotask(() => setSignal(element._pendingSignal!, v))
+          queueMicrotask(() => setSignal(element._pendingSignal!, v)),
         );
     }
 
@@ -1072,10 +1130,17 @@ function read(element: ReactiveNode): any {
 
   // Handle pending/error states
   if (element._statusFlags & StatusFlags.Pending) {
-    if ((currentContext && !stale) || element._statusFlags & StatusFlags.Uninitialized) {
+    if (
+      (currentContext && !stale) ||
+      element._statusFlags & StatusFlags.Uninitialized
+    ) {
       throw element._error;
     } else if (currentContext && stale && !pendingCheck) {
-      setStatusFlags(currentContext, currentContext._statusFlags | StatusFlags.Pending, element._error);
+      setStatusFlags(
+        currentContext,
+        currentContext._statusFlags | StatusFlags.Pending,
+        element._error,
+      );
     }
   }
 
@@ -1091,8 +1156,11 @@ function read(element: ReactiveNode): any {
 
   // Return appropriate value
   return !currentContext ||
-         element._pendingValue === NOT_PENDING ||
-         (stale && !pendingCheck && element._transition && activeTransition !== element._transition)
+    element._pendingValue === NOT_PENDING ||
+    (stale &&
+      !pendingCheck &&
+      element._transition &&
+      activeTransition !== element._transition)
     ? element._value
     : element._pendingValue;
 }
@@ -1103,13 +1171,20 @@ function read(element: ReactiveNode): any {
 function setSignal(element: ReactiveNode, newValue: any): void {
   // Handle function updates
   if (typeof newValue === "function") {
-    const currentValue = element._pendingValue === NOT_PENDING ? element._value : element._pendingValue;
+    const currentValue =
+      element._pendingValue === NOT_PENDING
+        ? element._value
+        : element._pendingValue;
     newValue = newValue(currentValue);
   }
 
   // Check if value actually changed
-  const currentValue = element._pendingValue === NOT_PENDING ? element._value : element._pendingValue;
-  const valueChanged = !element._equals || !element._equals(currentValue, newValue);
+  const currentValue =
+    element._pendingValue === NOT_PENDING
+      ? element._value
+      : element._pendingValue;
+  const valueChanged =
+    !element._equals || !element._equals(currentValue, newValue);
 
   if (!valueChanged && !element._statusFlags) {
     return; // No change
@@ -1138,7 +1213,8 @@ function setSignal(element: ReactiveNode, newValue: any): void {
 
   // Mark subscribers as dirty
   for (let link = element._subs; link !== null; link = link._nextSub) {
-    const heap = link._sub._flags & ReactiveFlags.Zombie ? pendingQueue : dirtyQueue;
+    const heap =
+      link._sub._flags & ReactiveFlags.Zombie ? pendingQueue : dirtyQueue;
     insertIntoHeap(link._sub, heap);
   }
 
@@ -1150,7 +1226,11 @@ function setSignal(element: ReactiveNode, newValue: any): void {
 /**
  * Set status flags
  */
-function setStatusFlags(element: ReactiveNode, flags: StatusFlags, error: any = null): void {
+function setStatusFlags(
+  element: ReactiveNode,
+  flags: StatusFlags,
+  error: any = null,
+): void {
   element._statusFlags = flags;
   element._error = error;
 }
@@ -1205,7 +1285,8 @@ function disposeChildren(node: ReactiveNode, zombie?: boolean): void {
 
     if (child._deps) {
       const childNode = child;
-      const heap = childNode._flags & ReactiveFlags.Zombie ? pendingQueue : dirtyQueue;
+      const heap =
+        childNode._flags & ReactiveFlags.Zombie ? pendingQueue : dirtyQueue;
       deleteFromHeap(childNode, heap);
 
       // Remove all dependencies
@@ -1308,32 +1389,39 @@ function isEqual(a: any, b: any): boolean {
 /**
  * Create a computed value
  */
-function computed(fn: (prev: any) => any, initialValue: any, options?: any): ReactiveNode {
-  const self: ReactiveNode = withOptions({
-    _disposal: null,
-    _queue: globalQueue,
-    _context: defaultContext,
-    _childCount: 0,
-    _fn: fn,
-    _value: initialValue,
-    _height: 0,
-    _child: null,
-    _nextHeap: undefined,
-    _prevHeap: null,
-    _deps: null,
-    _depsTail: null,
-    _subs: null,
-    _subsTail: null,
-    _parent: context,
-    _nextSibling: null,
-    _firstChild: null,
-    _flags: ReactiveFlags.None,
-    _statusFlags: StatusFlags.Uninitialized,
-    _time: clock,
-    _pendingValue: NOT_PENDING,
-    _pendingDisposal: null,
-    _pendingFirstChild: null,
-  } as ReactiveNode, options);
+function computed(
+  fn: (prev: any) => any,
+  initialValue: any,
+  options?: any,
+): ReactiveNode {
+  const self: ReactiveNode = withOptions(
+    {
+      _disposal: null,
+      _queue: globalQueue,
+      _context: defaultContext,
+      _childCount: 0,
+      _fn: fn,
+      _value: initialValue,
+      _height: 0,
+      _child: null,
+      _nextHeap: undefined,
+      _prevHeap: null,
+      _deps: null,
+      _depsTail: null,
+      _subs: null,
+      _subsTail: null,
+      _parent: context,
+      _nextSibling: null,
+      _firstChild: null,
+      _flags: ReactiveFlags.None,
+      _statusFlags: StatusFlags.Uninitialized,
+      _time: clock,
+      _pendingValue: NOT_PENDING,
+      _pendingDisposal: null,
+      _pendingFirstChild: null,
+    } as ReactiveNode,
+    options,
+  );
 
   self._prevHeap = self;
 
@@ -1375,7 +1463,11 @@ function computed(fn: (prev: any) => any, initialValue: any, options?: any): Rea
 /**
  * Create an async computed value (handles Promises and AsyncIterators)
  */
-function asyncComputed(asyncFn: (prev: any, refreshing: boolean) => any, initialValue: any, options?: any): ReactiveNode {
+function asyncComputed(
+  asyncFn: (prev: any, refreshing: boolean) => any,
+  initialValue: any,
+  options?: any,
+): ReactiveNode {
   let lastResult: any = undefined;
   let refreshing = false;
 
@@ -1450,29 +1542,39 @@ function asyncComputed(asyncFn: (prev: any, refreshing: boolean) => any, initial
  * @param options - Signal options
  * @param firewall - Optional firewall node for nested signals
  */
-function signal(value: any, options?: any, firewall: ReactiveNode | null = null): ReactiveNode {
+function signal(
+  value: any,
+  options?: any,
+  firewall: ReactiveNode | null = null,
+): ReactiveNode {
   if (firewall !== null) {
     // Create nested signal behind firewall
-    return (firewall._child = withOptions({
-      _value: value,
-      _subs: null,
-      _subsTail: null,
-      _owner: firewall,
-      _nextChild: firewall._child,
-      _statusFlags: StatusFlags.None,
-      _time: clock,
-      _pendingValue: NOT_PENDING,
-    } as ReactiveNode, options));
+    return (firewall._child = withOptions(
+      {
+        _value: value,
+        _subs: null,
+        _subsTail: null,
+        _owner: firewall,
+        _nextChild: firewall._child,
+        _statusFlags: StatusFlags.None,
+        _time: clock,
+        _pendingValue: NOT_PENDING,
+      } as ReactiveNode,
+      options,
+    ));
   } else {
     // Create regular signal
-    return withOptions({
-      _value: value,
-      _subs: null,
-      _subsTail: null,
-      _statusFlags: StatusFlags.None,
-      _time: clock,
-      _pendingValue: NOT_PENDING,
-    } as ReactiveNode, options);
+    return withOptions(
+      {
+        _value: value,
+        _subs: null,
+        _subsTail: null,
+        _statusFlags: StatusFlags.None,
+        _time: clock,
+        _pendingValue: NOT_PENDING,
+      } as ReactiveNode,
+      options,
+    );
   }
 }
 
@@ -1530,7 +1632,10 @@ function onCleanup(fn: Function): Function {
 /**
  * Create a new reactive root
  */
-function createRoot(init: ((dispose: () => void) => void) | (() => void), options?: any): any {
+function createRoot(
+  init: ((dispose: () => void) => void) | (() => void),
+  options?: any,
+): any {
   const parent = context;
 
   const owner: ReactiveNode = {
@@ -1556,9 +1661,12 @@ function createRoot(init: ((dispose: () => void) => void) | (() => void), option
     }
   }
 
-  return runWithOwner(owner, !init.length
-    ? init as () => void
-    : () => (init as (dispose: () => void) => void)(() => disposeChildren(owner))
+  return runWithOwner(
+    owner,
+    !init.length
+      ? (init as () => void)
+      : () =>
+          (init as (dispose: () => void) => void)(() => disposeChildren(owner)),
   );
 }
 
@@ -1635,10 +1743,13 @@ interface ContextObject<T = any> {
 /**
  * Create a context
  */
-function createContext<T = any>(defaultValue?: T, description?: string): ContextObject<T> {
+function createContext<T = any>(
+  defaultValue?: T,
+  description?: string,
+): ContextObject<T> {
   return {
     id: Symbol(description),
-    defaultValue
+    defaultValue,
   };
 }
 
@@ -1664,7 +1775,11 @@ function getContext<T>(contextObj: ContextObject<T>, owner = getOwner()): T {
 /**
  * Set context value
  */
-function setContext<T>(contextObj: ContextObject<T>, value: T, owner = getOwner()): void {
+function setContext<T>(
+  contextObj: ContextObject<T>,
+  value: T,
+  owner = getOwner(),
+): void {
   if (!owner) {
     throw new NoOwnerError();
   }
@@ -1678,7 +1793,10 @@ function setContext<T>(contextObj: ContextObject<T>, value: T, owner = getOwner(
 /**
  * Check if context exists
  */
-function hasContext<T>(contextObj: ContextObject<T>, owner: ReactiveNode | null): boolean {
+function hasContext<T>(
+  contextObj: ContextObject<T>,
+  owner: ReactiveNode | null,
+): boolean {
   return !isUndefined(owner?._context?.[contextObj.id]);
 }
 
@@ -1701,7 +1819,7 @@ function effect(
   effectFn: (value: any, prev: any) => void | Function,
   errorFn: ((error: any, reset: () => void) => void) | undefined,
   initialValue: any,
-  options?: any
+  options?: any,
 ): void {
   let initialized = false;
 
@@ -1731,7 +1849,11 @@ function effect(
       _type: options?.render ? EffectType.Render : EffectType.User,
       _notifyQueue() {
         if (this._type === EffectType.Render) {
-          this._queue!.notify(this, StatusFlags.Pending | StatusFlags.Error, this._statusFlags);
+          this._queue!.notify(
+            this,
+            StatusFlags.Pending | StatusFlags.Error,
+            this._statusFlags,
+          );
         }
       },
     },
@@ -1742,13 +1864,17 @@ function effect(
   // Wrap compute for render effects to use stale values
   if (node._type === EffectType.Render) {
     const originalFn = node._fn!;
-    node._fn = (p) => !(node._statusFlags & StatusFlags.Error)
-      ? staleValues(() => compute(p))
-      : compute(p);
+    node._fn = (p) =>
+      !(node._statusFlags & StatusFlags.Error)
+        ? staleValues(() => compute(p))
+        : compute(p);
   }
 
   // Run initial effect (unless deferred)
-  if (!options?.defer && !(node._statusFlags & (StatusFlags.Error | StatusFlags.Pending))) {
+  if (
+    !options?.defer &&
+    !(node._statusFlags & (StatusFlags.Error | StatusFlags.Pending))
+  ) {
     if (node._type === EffectType.User) {
       node._queue!.enqueue(node._type, runEffect.bind(node));
     } else {
@@ -1760,7 +1886,9 @@ function effect(
   onCleanup(() => node._cleanup?.());
 
   if (!node._parent) {
-    console.warn("Effects created outside a reactive context will never be disposed");
+    console.warn(
+      "Effects created outside a reactive context will never be disposed",
+    );
   }
 }
 
@@ -1812,8 +1940,15 @@ function runEffect(this: ReactiveNode): void {
 /**
  * Create a signal (getter/setter pair or computed)
  */
-function createSignal<T>(initialValue: T, options?: any): [() => T, (v: T | ((prev: T) => T)) => void];
-function createSignal<T>(computeFn: (prev: T) => T, initialValue: T, options?: any): [() => T, (v: T | ((prev: T) => T)) => void];
+function createSignal<T>(
+  initialValue: T,
+  options?: any,
+): [() => T, (v: T | ((prev: T) => T)) => void];
+function createSignal<T>(
+  computeFn: (prev: T) => T,
+  initialValue: T,
+  options?: any,
+): [() => T, (v: T | ((prev: T) => T)) => void];
 function createSignal(first: any, second?: any, third?: any): any {
   if (typeof first === "function") {
     // Computed signal
@@ -1826,7 +1961,7 @@ function createSignal(first: any, second?: any, third?: any): any {
   const needsId = owner?._id != null;
   const node = signal(
     first,
-    needsId ? { id: getNextChildId(owner!), ...second } : second
+    needsId ? { id: getNextChildId(owner!), ...second } : second,
   );
 
   return [read.bind(null, node), setSignal.bind(null, node)];
@@ -1835,7 +1970,11 @@ function createSignal(first: any, second?: any, third?: any): any {
 /**
  * Create a memo (computed value)
  */
-function createMemo<T>(compute: (prev?: T) => T, value?: T, options?: any): () => T {
+function createMemo<T>(
+  compute: (prev?: T) => T,
+  value?: T,
+  options?: any,
+): () => T {
   const node = computed(compute, value, options);
   return read.bind(null, node);
 }
@@ -1843,7 +1982,11 @@ function createMemo<T>(compute: (prev?: T) => T, value?: T, options?: any): () =
 /**
  * Create an async computed
  */
-function createAsync<T>(compute: (prev: T, refreshing: boolean) => any, value?: T, options?: any): (() => T) & { refresh: () => void } {
+function createAsync<T>(
+  compute: (prev: T, refreshing: boolean) => any,
+  value?: T,
+  options?: any,
+): (() => T) & { refresh: () => void } {
   const node = asyncComputed(compute, value, options);
   const ret = read.bind(null, node) as any;
   ret.refresh = node._refresh;
@@ -1855,9 +1998,12 @@ function createAsync<T>(compute: (prev: T, refreshing: boolean) => any, value?: 
  */
 function createEffect<T>(
   compute: () => T,
-  effectFn: ((value: T, prev: T) => void | Function) & { effect?: any, error?: any },
+  effectFn: ((value: T, prev: T) => void | Function) & {
+    effect?: any;
+    error?: any;
+  },
   value?: T,
-  options?: any
+  options?: any,
 ): void {
   effect(compute, effectFn.effect || effectFn, effectFn.error, value, {
     ...options,
@@ -1872,7 +2018,7 @@ function createRenderEffect<T>(
   compute: () => T,
   effectFn: (value: T, prev: T) => void | Function,
   value?: T,
-  options?: any
+  options?: any,
 ): void {
   effect(compute, effectFn, undefined, value, {
     render: true,
