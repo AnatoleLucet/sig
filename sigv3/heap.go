@@ -1,43 +1,54 @@
 package sig
 
-type Heap struct {
+type PriorityHeap struct {
 	min int
 	max int
 
-	items []*HeapItem
+	nodes []*heapNode // [height]head
+
+	loopkup map[*ReactiveNode]*heapNode // for O(1) removal
 }
 
-type HeapItem struct {
+type heapNode struct {
 	node *ReactiveNode
 
-	next *HeapItem
-	prev *HeapItem
+	next *heapNode
+	prev *heapNode
 }
 
-func NewHeap() *Heap {
-	return &Heap{
-		min:   0,
-		max:   0,
-		items: make([]*HeapItem, 2000),
+func NewHeap() *PriorityHeap {
+	return &PriorityHeap{
+		min:     0,
+		max:     0,
+		nodes:   make([]*heapNode, 2000),
+		loopkup: make(map[*ReactiveNode]*heapNode),
 	}
 }
 
-func (h *Heap) Insert(node *ReactiveNode) {
-	item := &HeapItem{node: node}
+func (h *PriorityHeap) Insert(node *ReactiveNode) {
+	if node.HasFlag(FlagInHeap | FlagRecomputing) {
+		return
+	}
+
+	node.AddFlag(FlagInHeap)
+
+	entry := &heapNode{node: node}
+	h.loopkup[node] = entry
+
 	height := node.height
 
-	if h.items[height] == nil {
-		h.items[height] = item
-		item.prev = item // loop to self
-		item.next = nil
+	if h.nodes[height] == nil {
+		h.nodes[height] = entry
+		entry.prev = entry // loop to self
+		entry.next = nil
 	} else {
-		head := h.items[height]
+		head := h.nodes[height]
 		tail := head.prev
 
-		tail.next = item
-		item.prev = tail
-		item.next = nil
-		head.prev = item
+		tail.next = entry
+		entry.prev = tail
+		entry.next = nil
+		head.prev = entry
 	}
 
 	if height > h.max {
@@ -45,42 +56,52 @@ func (h *Heap) Insert(node *ReactiveNode) {
 	}
 }
 
-func (h *Heap) Remove(item *HeapItem) {
-	height := item.node.height
+func (h *PriorityHeap) Remove(node *ReactiveNode) {
+	if !node.HasFlag(FlagInHeap) {
+		return
+	}
+
+	entry, ok := h.loopkup[node]
+	if !ok {
+		return
+	}
+	delete(h.loopkup, node)
+
+	height := entry.node.height
 
 	// single node
-	if item.prev != item {
-		h.items[height] = nil
-		item.prev = item
-		item.next = nil
+	if entry.prev == entry {
+		h.nodes[height] = nil
+		entry.prev = entry
+		entry.next = nil
 		return
 	}
 
 	// multiple nodes
-	head := h.items[height]
-	if item == head {
-		h.items[height] = item.next
+	head := h.nodes[height]
+	if entry == head {
+		h.nodes[height] = entry.next
 	} else {
-		item.prev.next = item.next
+		entry.prev.next = entry.next
 	}
 
-	next := item.next
+	next := entry.next
 	if next == nil {
 		next = head
 	}
-	next.prev = item.prev
+	next.prev = entry.prev
 
-	item.prev = item
-	item.next = nil
+	entry.prev = entry
+	entry.next = nil
 }
 
-func (h *Heap) Run(process func(*ReactiveNode)) {
+func (h *PriorityHeap) Run(process func(*ReactiveNode)) {
 	for h.min = 0; h.min <= h.max; h.min++ {
-		item := h.items[h.min]
+		entry := h.nodes[h.min]
 
-		for item != nil {
-			process(item.node)
-			item = h.items[h.min]
+		for entry != nil {
+			process(entry.node)
+			entry = h.nodes[h.min]
 		}
 	}
 

@@ -23,14 +23,12 @@ func GetRuntime() *Runtime {
 type Runtime struct {
 	mu sync.Mutex
 
-	dirtyHeap   *Heap
-	pendingHeap *Heap
+	dirtyHeap   *PriorityHeap
+	pendingHeap *PriorityHeap
 
-	clock     int
-	scheduled bool
-
-	tracking       bool
-	currentContext *ReactiveNode
+	queue       *EffectQueue
+	scheduler   *NodeScheduler
+	execContext *ExecutionContext
 }
 
 func NewRuntime() *Runtime {
@@ -38,26 +36,28 @@ func NewRuntime() *Runtime {
 		dirtyHeap:   NewHeap(),
 		pendingHeap: NewHeap(),
 
-		clock:     0,
-		scheduled: false,
-
-		tracking:       false,
-		currentContext: nil,
+		queue:       NewQueue(),
+		scheduler:   NewScheduler(),
+		execContext: NewContext(),
 	}
 }
 
 func (r *Runtime) Flush() {
-	r.dirtyHeap.Run(func(node *ReactiveNode) {
-		// recompute
-		// or
-		// adjust height
-	})
+	r.scheduler.Run(func(commit func()) {
+		r.dirtyHeap.Run(func(node *ReactiveNode) {
+			r.dirtyHeap.Remove(node)
+			r.recompute(node)
+		})
 
-	// commit pending values
-	// for _, node := range q.pendingNodes {
-	// 	if node.pendingValue != nil {
-	// 		node.value = *node.pendingValue
-	// 		node.pendingValue = nil
-	// 	}
-	// }
+		commit()
+
+		r.queue.RunEffects(EffectRender)
+		r.queue.RunEffects(EffectUser)
+	})
+}
+
+func (r *Runtime) markSubscribersDirty(node *ReactiveNode) {
+	for sub := range node.Subs() {
+		r.dirtyHeap.Insert(sub)
+	}
 }
