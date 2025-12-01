@@ -19,20 +19,26 @@ const (
 type ReactiveNode struct {
 	value        any
 	pendingValue *any
-
-	flags NodeFlags
+	fn           func(any) any // for computed node (TODO: maybe rename? computeValue?)
 
 	height int
-
-	fn func(any) any // for computed node
+	flags  NodeFlags
 
 	depsHead *DependencyLink
 	subsHead *DependencyLink
+
+	parent       *ReactiveNode
+	prevSibling  *ReactiveNode
+	nextSibling  *ReactiveNode
+	childrenHead *ReactiveNode
+
+	disposal *Disposal
 }
 
 func NewNode() *ReactiveNode {
-	n := &ReactiveNode{}
-	return n
+	return &ReactiveNode{
+		disposal: NewDisposal(),
+	}
 }
 
 // Value returns the node's value (or pendingValue if set)
@@ -199,4 +205,71 @@ func (dep *ReactiveNode) removeSubLink(link *DependencyLink) {
 
 	link.prevSub = nil
 	link.nextSub = nil
+}
+
+func (parent *ReactiveNode) AddChild(child *ReactiveNode) {
+	child.parent = parent
+	child.prevSibling = nil
+	child.nextSibling = parent.childrenHead
+
+	if parent.childrenHead != nil {
+		parent.childrenHead.prevSibling = child
+	}
+
+	parent.childrenHead = child
+}
+
+func (n *ReactiveNode) Children() iter.Seq[*ReactiveNode] {
+	return func(yield func(*ReactiveNode) bool) {
+		child := n.childrenHead
+
+		for child != nil {
+			if !yield(child) {
+				return
+			}
+
+			child = child.nextSibling
+		}
+	}
+}
+
+func (n *ReactiveNode) OnCleanup(fn func()) {
+	n.disposal.AddUserCleanup(fn)
+}
+
+// func (n *ReactiveNode) Dispose() {
+// 	// n.DisposeChildren() // Recursively dispose children
+// 	// // n.runDisposal()      // Run user cleanups
+// 	// n.runEffectCleanup() // Run effect cleanup if present
+// 	// n.ClearDeps()
+// 	// n.AddFlag(FlagZombie)
+// }
+
+func (n *ReactiveNode) Dispose() {
+	if n.depsHead != nil {
+		// heap.Remove(child)
+		n.ClearDeps()
+		n.SetFlags(FlagNone)
+	}
+
+	n.DisposeChildren()
+
+	n.disposal.Run()
+}
+
+func (n *ReactiveNode) DisposeChildren() {
+	// for each child
+	// - if deps
+	//   delete self form heap
+	//   unlink subs
+	//   set flags to none
+	// - child.DisposeChildren()
+
+	// run dispose
+
+	for child := range n.Children() {
+		child.Dispose()
+	}
+
+	n.childrenHead = nil
 }

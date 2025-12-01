@@ -1,7 +1,9 @@
 package sig
 
 func (r *Runtime) recompute(node *ReactiveNode) {
-	height := node.height
+	oldHeight := node.height
+	// oldValue := node.value
+
 	node.ClearDeps()
 
 	r.execContext.withNode(node, func() {
@@ -10,12 +12,14 @@ func (r *Runtime) recompute(node *ReactiveNode) {
 		}
 	})
 
-	r.updateNodeHeight(node, height)
-}
-
-func (r *Runtime) updateNodeHeight(node *ReactiveNode, oldHeight int) {
+	// newValue := node.value
 	newHeight := node.MaxDepHeight()
-	if newHeight != oldHeight {
+
+	// valueChanged := newValue != oldValue
+	heightChanged := newHeight != oldHeight
+
+	// if valueChanged || heightChanged {
+	if heightChanged {
 		node.height = newHeight
 
 		for sub := range node.Subs() {

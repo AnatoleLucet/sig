@@ -95,11 +95,13 @@ func (h *PriorityHeap) Remove(node *ReactiveNode) {
 	entry.next = nil
 }
 
+// Run consumes the heap processing each entry in topological order with the `process` function.
 func (h *PriorityHeap) Run(process func(*ReactiveNode)) {
 	for h.min = 0; h.min <= h.max; h.min++ {
 		entry := h.nodes[h.min]
 
 		for entry != nil {
+			h.Remove(entry.node)
 			process(entry.node)
 			entry = h.nodes[h.min]
 		}

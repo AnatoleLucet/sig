@@ -38,5 +38,7 @@ func (r *Runtime) write(node *ReactiveNode, v any) {
 
 	node.pendingValue = &v
 
-	r.markSubscribersDirty(node)
+	for sub := range node.Subs() {
+		r.dirtyHeap.Insert(sub)
+	}
 }

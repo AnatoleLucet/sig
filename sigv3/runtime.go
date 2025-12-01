@@ -44,20 +44,11 @@ func NewRuntime() *Runtime {
 
 func (r *Runtime) Flush() {
 	r.scheduler.Run(func(commit func()) {
-		r.dirtyHeap.Run(func(node *ReactiveNode) {
-			r.dirtyHeap.Remove(node)
-			r.recompute(node)
-		})
+		r.dirtyHeap.Run(r.recompute)
 
 		commit()
 
 		r.queue.RunEffects(EffectRender)
 		r.queue.RunEffects(EffectUser)
 	})
-}
-
-func (r *Runtime) markSubscribersDirty(node *ReactiveNode) {
-	for sub := range node.Subs() {
-		r.dirtyHeap.Insert(sub)
-	}
 }
