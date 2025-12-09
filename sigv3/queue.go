@@ -8,6 +8,9 @@ const (
 )
 
 type EffectQueue struct {
+	parent   *EffectQueue
+	children []*EffectQueue
+
 	renderEffects []func()
 	userEffects   []func()
 }
@@ -16,6 +19,21 @@ func NewQueue() *EffectQueue {
 	return &EffectQueue{
 		renderEffects: make([]func(), 0),
 		userEffects:   make([]func(), 0),
+	}
+}
+
+func (q *EffectQueue) AddChild(child *EffectQueue) {
+	q.children = append(q.children, child)
+	child.parent = q
+}
+
+func (q *EffectQueue) RemoveChild(child *EffectQueue) {
+	for i, c := range q.children {
+		if c == child {
+			q.children = append(q.children[:i], q.children[i+1:]...)
+			child.parent = nil
+			break
+		}
 	}
 }
 
@@ -36,7 +54,9 @@ func (q *EffectQueue) RunEffects(typ EffectType) {
 		effect()
 	}
 
-	// TODO: recursively run children children
+	for _, child := range q.children {
+		child.RunEffects(typ)
+	}
 }
 
 func (q *EffectQueue) ClearEffects(typ EffectType) {

@@ -31,8 +31,12 @@ func (s *NodeScheduler) Run(fn func(commit func())) {
 
 // Schedule takes a node with a pendingValue that can be comitted latter using the Run() method.
 func (s *NodeScheduler) Schedule(node *ReactiveNode) {
-	s.scheduled = true
 	s.pendingNodes = append(s.pendingNodes, node)
+	s.MarkScheduled()
+}
+
+func (s *NodeScheduler) MarkScheduled() {
+	s.scheduled = true
 }
 
 func (s *NodeScheduler) commit() {

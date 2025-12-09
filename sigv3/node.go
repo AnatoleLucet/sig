@@ -14,12 +14,13 @@ const (
 	FlagInHeap       NodeFlags = 1 << 3 // In execution heap
 	FlagInHeapHeight NodeFlags = 1 << 4 // In heap for height adjustement
 	FlagZombie       NodeFlags = 1 << 5 // Maked for disposal
+	FlagEnqueued     NodeFlags = 1 << 6 // Enqueued for execution
 )
 
 type ReactiveNode struct {
 	value        any
 	pendingValue *any
-	fn           func(any) any // for computed node (TODO: maybe rename? computeValue?)
+	fn           func(any) any // for computed node
 
 	height int
 	flags  NodeFlags
@@ -237,17 +238,9 @@ func (n *ReactiveNode) OnCleanup(fn func()) {
 	n.disposal.AddUserCleanup(fn)
 }
 
-// func (n *ReactiveNode) Dispose() {
-// 	// n.DisposeChildren() // Recursively dispose children
-// 	// // n.runDisposal()      // Run user cleanups
-// 	// n.runEffectCleanup() // Run effect cleanup if present
-// 	// n.ClearDeps()
-// 	// n.AddFlag(FlagZombie)
-// }
-
 func (n *ReactiveNode) Dispose() {
 	if n.depsHead != nil {
-		// heap.Remove(child)
+		n.getHeap().Remove(n)
 		n.ClearDeps()
 		n.SetFlags(FlagNone)
 	}
@@ -258,18 +251,20 @@ func (n *ReactiveNode) Dispose() {
 }
 
 func (n *ReactiveNode) DisposeChildren() {
-	// for each child
-	// - if deps
-	//   delete self form heap
-	//   unlink subs
-	//   set flags to none
-	// - child.DisposeChildren()
-
-	// run dispose
-
 	for child := range n.Children() {
 		child.Dispose()
 	}
 
 	n.childrenHead = nil
+}
+
+// getHeap returns the proper heap based on the Node's state
+func (n *ReactiveNode) getHeap() *PriorityHeap {
+	r := GetRuntime()
+
+	if n.HasFlag(FlagZombie) {
+		return r.pendingHeap
+	}
+
+	return r.dirtyHeap
 }

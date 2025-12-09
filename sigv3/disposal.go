@@ -6,8 +6,8 @@ type Disposal struct {
 }
 
 func NewDisposal() *Disposal {
-	return  &Disposal{
-		user: make([]func(), 0)
+	return &Disposal{
+		user: make([]func(), 0),
 	}
 }
 

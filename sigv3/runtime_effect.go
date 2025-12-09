@@ -28,12 +28,31 @@ func (r *Runtime) recompute(node *ReactiveNode) {
 	}
 }
 
-func (r *Runtime) Effect(fn func()) {
+func (r *Runtime) Effect(fn func() func()) {
 	node := NewNode()
 	node.fn = func(any) any {
-		fn()
+		if node.HasFlag(FlagEnqueued) {
+			return nil
+		}
+		node.AddFlag(FlagEnqueued)
+
+		r.queue.Enqueue(EffectUser, func() {
+			node.RemoveFlag(FlagEnqueued)
+
+			node.disposal.RunEffect()
+
+			cleanup := fn()
+			if cleanup != nil {
+				node.disposal.SetEffectCleanup(cleanup)
+			}
+		})
+
+		r.scheduler.MarkScheduled()
+
 		return nil
 	}
+
+	// TODO: add self to parent
 
 	r.recompute(node)
 }

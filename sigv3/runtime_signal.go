@@ -1,5 +1,7 @@
 package sig
 
+import "fmt"
+
 func (r *Runtime) Signal(initial any) (func() any, func(any)) {
 	node := NewNode()
 	node.value = initial
@@ -19,6 +21,7 @@ func (r *Runtime) read(node *ReactiveNode) any {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
+	fmt.Println("ShouldTrack", r.execContext.ShouldTrack(), r.execContext.currentNode)
 	if r.execContext.ShouldTrack() {
 		r.execContext.currentNode.Link(node)
 	}
