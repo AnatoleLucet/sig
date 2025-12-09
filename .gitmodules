@@ -1,0 +1,3 @@
+[submodule "solidjs-signals"]
+	path = solidjs-signals
+	url = git@github.com:solidjs/signals.git
