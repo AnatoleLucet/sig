@@ -1,9 +1,11 @@
 package internal
 
+type Tick int
+
 type Scheduler struct {
 	// incremented each time the scheduler is flushed (when reactive nodes are updated)
 	// used for staleness detection
-	clock int
+	clock Tick
 
 	// each nested batch increases the depth by 1
 	// if depth > 0, updates are queued until the outermost batch is complete
@@ -39,13 +41,8 @@ func (s *Scheduler) Run(fn func()) {
 
 func (s *Scheduler) Schedule() {
 	s.scheduled = true
-
-	// maybe move that to an upper schedule method on the runtime?
-	if s.batchDepth == 0 {
-		GetRuntime().Flush()
-	}
 }
 
-func (s *Scheduler) Time() int {
+func (s *Scheduler) Time() Tick {
 	return s.clock
 }

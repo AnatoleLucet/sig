@@ -22,20 +22,30 @@ func ExampleComputed() {
 		fmt.Println("doubling")
 		return count() * 2
 	})
+	plustwo := Computed(func() int {
+		fmt.Println("adding")
+		return double() + 2
+	})
 	fmt.Println(count())
 	fmt.Println(double())
+	fmt.Println(plustwo())
 
 	setCount(10)
 	fmt.Println(count())
 	fmt.Println(double())
+	fmt.Println(plustwo())
 
 	// Output:
 	// doubling
+	// adding
 	// 1
 	// 2
+	// 4
 	// doubling
+	// adding
 	// 10
 	// 20
+	// 22
 }
 
 // func ExampleEffect() {

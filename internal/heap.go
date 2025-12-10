@@ -1,5 +1,7 @@
 package internal
 
+import "iter"
+
 type PriorityHeap struct {
 	min int
 	max int
@@ -52,6 +54,12 @@ func (h *PriorityHeap) Insert(node *ReactiveNode) {
 
 	if height > h.max {
 		h.max = height
+	}
+}
+
+func (h *PriorityHeap) InsertAll(nodes iter.Seq[*ReactiveNode]) {
+	for node := range nodes {
+		h.Insert(node)
 	}
 }
 

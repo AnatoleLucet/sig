@@ -21,8 +21,8 @@ func (r *Runtime) NewSignal(initial any) *Signal {
 func (s *Signal) Read() any {
 	r := GetRuntime()
 
-	if r.context.ShouldTrack() {
-		r.context.currentNode.Link(s.ReactiveNode)
+	if r.tracker.ShouldTrack() {
+		r.tracker.currentNode.Link(s.ReactiveNode)
 	}
 
 	return s.Value()
@@ -30,18 +30,21 @@ func (s *Signal) Read() any {
 
 func (s *Signal) Write(v any) {
 	r := GetRuntime()
-	// [ ] check if value changed
+	// [x] check if value changed
 	// [x] set pending value
-	// [ ] udpate node time
+	// [x] udpate node time
 	// [x] insert subs in dirty heap
 	// [x] schedule node
 
-	s.pendingValue = &v
-
-	for sub := range s.Subs() {
-		r.heap.Insert(sub)
+	if isEqual(s.Value(), v) {
+		return
 	}
-	r.scheduler.Schedule()
+
+	s.pendingValue = &v
+	s.SetVersion(r.scheduler.Time())
+
+	r.heap.InsertAll(s.Subs())
+	r.Schedule()
 }
 
 func (s *Signal) Value() any {
@@ -58,4 +61,8 @@ func (s *Signal) Commit() {
 		s.value = *s.pendingValue
 		s.pendingValue = nil
 	}
+}
+
+func isEqual(a, b any) bool {
+	return a == b
 }

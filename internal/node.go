@@ -19,6 +19,9 @@ type ReactiveNode struct {
 	// the node's state
 	flags NodeFlags
 
+	// the clock tick at which the node was last updated
+	version Tick
+
 	subsHead *DependencyLink
 	depsHead *DependencyLink
 
@@ -61,6 +64,10 @@ func (n *ReactiveNode) RemoveFlag(flag NodeFlags) {
 // SetFlags sets the flags to exact value
 func (n *ReactiveNode) SetFlags(flags NodeFlags) {
 	n.flags = flags
+}
+
+func (n *ReactiveNode) SetVersion(t Tick) {
+	n.version = t
 }
 
 // Link creates a bidirectional dependency link between this node (subcriber) and the given node (dependency).

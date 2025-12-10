@@ -11,18 +11,18 @@ var runtimes sync.Map
 func GetRuntime() *Runtime {
 	gid := goid.Get()
 
-	if rt, ok := runtimes.Load(gid); ok {
-		return rt.(*Runtime)
+	if r, ok := runtimes.Load(gid); ok {
+		return r.(*Runtime)
 	}
 
-	rt := NewRuntime()
-	runtimes.Store(gid, rt)
-	return rt
+	r := NewRuntime()
+	runtimes.Store(gid, r)
+	return r
 }
 
 type Runtime struct {
 	heap        *PriorityHeap
-	context     *ExecutionContext
+	tracker     *Tracker
 	scheduler   *Scheduler
 	nodeQueue   *NodeQueue
 	effectQueue *EffectQueue
@@ -31,10 +31,19 @@ type Runtime struct {
 func NewRuntime() *Runtime {
 	return &Runtime{
 		heap:        NewHeap(),
-		context:     NewContext(),
+		tracker:     NewTracker(),
 		scheduler:   NewScheduler(),
 		nodeQueue:   NewNodeQueue(),
 		effectQueue: NewEffectQueue(),
+	}
+}
+
+func (r *Runtime) Schedule() {
+	r.scheduler.Schedule()
+
+	// maybe it's not the role of the scheduler to track batchDepth?
+	if r.scheduler.batchDepth == 0 {
+		r.Flush()
 	}
 }
 
@@ -52,19 +61,20 @@ func (r *Runtime) Flush() {
 func (r *Runtime) recompute(node *ReactiveNode) {
 	// [x] clear deps
 	// [x] if fn!=nil run with node in exec context
-	// [x] if height and value changed, insert subs in dirty heap
+	// [ ] if height and value changed
+	//     [x] insert subs in dirty heap
 
 	if node.fn == nil {
 		return
 	}
 
 	node.ClearDeps()
-	r.context.RunWithNode(node, node.fn)
+	node.SetVersion(r.scheduler.Time())
 
-	// if heightChanged  {
-	for sub := range node.Subs() {
-		r.heap.Insert(sub)
-	}
+	r.tracker.RunWithNode(node, node.fn)
+
+	// if node.MaxDepHeight() != oldHeight {
+	r.heap.InsertAll(node.Subs())
 	// }
 }
 
