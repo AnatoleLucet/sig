@@ -8,27 +8,31 @@ const (
 )
 
 type Effect struct {
-	*Computed // an effect is just a computed that returns a cleanup function
+	*Computed
 
 	typ EffectType
 }
 
 func (r *Runtime) NewEffect(typ EffectType, effect func() func()) *Effect {
-	c := r.NewComputed(func() any {
+	c := r.NewComputed(func() any { // an effect is just a computed that returns a cleanup function
 		return effect()
 	})
-	computeFn := c.fn
+	compute := c.fn
 
 	e := &Effect{
 		Computed: c,
 		typ:      typ,
 	}
 	e.fn = func() {
-		computeFn()
+		r.effectQueue.Enqueue(typ, func() {
+			cleanup := e.Value().(func())
 
-		// cleanup := e.Value()
+			if cleanup != nil {
+				cleanup()
+			}
 
-		// enqueue the effect for execution
+			compute()
+		})
 	}
 
 	return e

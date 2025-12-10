@@ -16,8 +16,7 @@ func (r *Runtime) NewComputed(compute func() any) *Computed {
 		c.pendingValue = &value
 	}
 
-	// this should be done in another way but wathever for now
-	r.context.RunWithNode(c.ReactiveNode, c.fn)
+	r.recompute(c.ReactiveNode)
 
 	return c
 }

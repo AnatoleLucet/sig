@@ -16,16 +16,38 @@ func ExampleSignal() {
 	// 10
 }
 
-func ExampleEffect() {
-	count, _ := Signal(0)
-
-	Effect(func() func() {
-		count()
-
-		return nil
+func ExampleComputed() {
+	count, setCount := Signal(1)
+	double := Computed(func() int {
+		fmt.Println("doubling")
+		return count() * 2
 	})
+	fmt.Println(count())
+	fmt.Println(double())
 
-	count()
+	setCount(10)
+	fmt.Println(count())
+	fmt.Println(double())
 
 	// Output:
+	// doubling
+	// 1
+	// 2
+	// doubling
+	// 10
+	// 20
 }
+
+// func ExampleEffect() {
+// 	count, _ := Signal(0)
+//
+// 	Effect(func() func() {
+// 		count()
+//
+// 		return nil
+// 	})
+//
+// 	count()
+//
+// 	// Output:
+// }

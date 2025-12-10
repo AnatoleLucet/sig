@@ -29,13 +29,19 @@ func (s *Signal) Read() any {
 }
 
 func (s *Signal) Write(v any) {
+	r := GetRuntime()
 	// [ ] check if value changed
 	// [x] set pending value
-	// [ ] udpate time
-	// [ ] insert subs in dirty heap
-	// [ ] schedule node
+	// [ ] udpate node time
+	// [x] insert subs in dirty heap
+	// [x] schedule node
 
 	s.pendingValue = &v
+
+	for sub := range s.Subs() {
+		r.heap.Insert(sub)
+	}
+	r.scheduler.Schedule()
 }
 
 func (s *Signal) Value() any {
@@ -44,4 +50,12 @@ func (s *Signal) Value() any {
 	}
 
 	return s.value
+}
+
+// Commit applies the pending value to the signal
+func (s *Signal) Commit() {
+	if s.pendingValue != nil {
+		s.value = *s.pendingValue
+		s.pendingValue = nil
+	}
 }

@@ -20,7 +20,7 @@ fmt.Println(count())
 </details>
 
 <details>
-<summary>⬜ computed</summary>
+<summary>☑️ computed</summary>
 
 ```go
 count, setCound := sig.Signal(1)
@@ -39,8 +39,8 @@ fmt.Println(double())
 // doubling
 // 1
 // 2
+// doubling
 // 10
-// doubling -- note that recomputation is done when double() is called and not when setCount() is called. this is to avoid unneeded recomputations that will never be read
 // 20
 ```
 
