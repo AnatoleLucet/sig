@@ -1,16 +1,27 @@
 package sig
 
-func Signal[T any](initial T) (func() T, func(T)) {
-	value := initial
+import "github.com/AnatoleLucet/sig/internal"
 
-	get := func() T { return value }
-	set := func(v T) { value = v }
-
-	return get, set
+func readAs[T any](s *internal.Signal) func() T {
+	return func() T { return s.Read().(T) }
 }
 
-func Computed[T any](fn func() T) func() T {
-	return fn
+func writeAs[T any](s *internal.Signal) func(T) {
+	return func(v T) { s.Write(v) }
+}
+
+func Signal[T any](initial T) (func() T, func(T)) {
+	s := internal.GetRuntime().NewSignal(initial)
+
+	return readAs[T](s), writeAs[T](s)
+}
+
+func Computed[T any](compute func() T) func() T {
+	c := internal.GetRuntime().NewComputed(func() any {
+		return compute()
+	})
+
+	return readAs[T](c.Signal)
 }
 
 func AsyncComputed[T any](fn func() (T, error)) func() (T, error) {
@@ -22,7 +33,7 @@ func Batch(fn func()) {
 }
 
 func Effect(fn func() func()) {
-	fn()
+	internal.GetRuntime().NewEffect(internal.EffectUser, fn)
 }
 
 func Untrack[T any](fn func() T) T {

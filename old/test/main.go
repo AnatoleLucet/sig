@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/AnatoleLucet/sig/sigv3"
+	"github.com/AnatoleLucet/sig/old"
 )
 
 func main() {

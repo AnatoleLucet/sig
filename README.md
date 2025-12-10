@@ -3,7 +3,7 @@
 ## TODOs
 
 <details>
-<summary>⬜ signals</summary>
+<summary>☑️ signals</summary>
 
 ```go
 count, setCount := sig.Signal(0)
@@ -218,7 +218,7 @@ setOther(20)
 
 </details>
 
-### Architecture
+### Solid's Architecture
 
 ```mermaid
   graph TD
@@ -256,3 +256,14 @@ setOther(20)
       Heap --processed by--> Scheduler
       Queue --processed by--> Scheduler
 ```
+
+---
+
+<details>
+<summary>
+The storying behind <code>sig</code>
+</summary>
+
+i have things to tell.
+
+</details>
