@@ -47,7 +47,7 @@ fmt.Println(double())
 </details>
 
 <details>
-<summary>⬜ effects</summary>
+<summary>🔄 effects</summary>
 
 ```go
 count, setCound := sig.Signal(1)
@@ -71,7 +71,7 @@ fmt.Println(count())
 </details>
 
 <details>
-<summary>⬜ batch</summary>
+<summary>☑️ batch</summary>
 
 ```go
 count, setCound := Signal(1)

@@ -17,7 +17,7 @@ func Signal[T any](initial T) (func() T, func(T)) {
 }
 
 func Computed[T any](compute func() T) func() T {
-	c := internal.GetRuntime().NewComputed(func() any {
+	c := internal.GetRuntime().NewComputed(func(node *internal.Computed) any {
 		return compute()
 	})
 
@@ -29,7 +29,7 @@ func AsyncComputed[T any](fn func() (T, error)) func() (T, error) {
 }
 
 func Batch(fn func()) {
-	fn()
+	internal.GetRuntime().NewBatch(fn)
 }
 
 func Effect(fn func() func()) {

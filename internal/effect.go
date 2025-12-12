@@ -14,26 +14,29 @@ type Effect struct {
 }
 
 func (r *Runtime) NewEffect(typ EffectType, effect func() func()) *Effect {
-	c := r.NewComputed(func() any { // an effect is just a computed that returns a cleanup function
-		return effect()
-	})
-	compute := c.fn
+	var e *Effect
 
-	e := &Effect{
-		Computed: c,
-		typ:      typ,
-	}
-	e.fn = func() {
-		r.effectQueue.Enqueue(typ, func() {
-			cleanup := e.Value().(func())
-
-			if cleanup != nil {
-				cleanup()
+	e = &Effect{
+		// an effect is just a computed that returns a cleanup function
+		Computed: r.NewComputed(func(node *Computed) any {
+			cleanup := node.Value()
+			if fn, ok := cleanup.(func()); ok && fn != nil {
+				fn()
 			}
 
-			compute()
-		})
+			return effect()
+		}),
+
+		typ: typ,
 	}
+	e.fn = e.run
 
 	return e
+}
+
+func (e *Effect) run() {
+	r := GetRuntime()
+
+	r.effectQueue.Enqueue(e.typ, e.Computed.run)
+	r.Schedule()
 }

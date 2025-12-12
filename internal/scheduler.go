@@ -7,18 +7,13 @@ type Scheduler struct {
 	// used for staleness detection
 	clock Tick
 
-	// each nested batch increases the depth by 1
-	// if depth > 0, updates are queued until the outermost batch is complete
-	batchDepth int
-
 	scheduled bool
 	running   bool
 }
 
 func NewScheduler() *Scheduler {
 	return &Scheduler{
-		clock:      0,
-		batchDepth: 0,
+		clock: 0,
 
 		scheduled: false,
 		running:   false,
@@ -26,17 +21,25 @@ func NewScheduler() *Scheduler {
 }
 
 func (s *Scheduler) Run(fn func()) {
-	if s.running || !s.scheduled {
+	if s.running {
 		return
 	}
 
-	s.scheduled = false
 	s.running = true
+	defer func() { s.running = false }()
 
-	fn()
+	count := 0
+	for s.scheduled {
+		count++
+		if count > 1e5 {
+			panic("possible infinite update loop detected") // todo: handle this more gracefully
+		}
 
-	s.clock++
-	s.running = false
+		// s.running = false
+		s.scheduled = false
+		fn()
+		s.clock++
+	}
 }
 
 func (s *Scheduler) Schedule() {

@@ -23,6 +23,7 @@ func GetRuntime() *Runtime {
 type Runtime struct {
 	heap        *PriorityHeap
 	tracker     *Tracker
+	batcher     *Batcher
 	scheduler   *Scheduler
 	nodeQueue   *NodeQueue
 	effectQueue *EffectQueue
@@ -32,6 +33,7 @@ func NewRuntime() *Runtime {
 	return &Runtime{
 		heap:        NewHeap(),
 		tracker:     NewTracker(),
+		batcher:     NewBatcher(),
 		scheduler:   NewScheduler(),
 		nodeQueue:   NewNodeQueue(),
 		effectQueue: NewEffectQueue(),
@@ -41,8 +43,7 @@ func NewRuntime() *Runtime {
 func (r *Runtime) Schedule() {
 	r.scheduler.Schedule()
 
-	// maybe it's not the role of the scheduler to track batchDepth?
-	if r.scheduler.batchDepth == 0 {
+	if !r.batcher.IsBatching() {
 		r.Flush()
 	}
 }
