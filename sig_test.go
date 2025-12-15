@@ -102,13 +102,14 @@ func ExampleEffect_nested() {
 	count, setCount := Signal(0)
 
 	Effect(func() func() {
-		fmt.Println("count", count())
+		count()
+		fmt.Println("running")
 
 		Effect(func() func() {
-			fmt.Println("nested count", count())
+			fmt.Println("running nested")
 
 			return func() {
-				fmt.Println("nested cleanup")
+				fmt.Println("cleanup nested")
 			}
 		})
 
@@ -120,12 +121,82 @@ func ExampleEffect_nested() {
 	setCount(10)
 
 	// Output:
-	// count 0
-	// nested count 0
-	// nested cleanup
-	// nested count 10
+	// running
+	// running nested
+	// cleanup nested
 	// cleanup
-	// count 10
+	// running
+	// running nested
+}
+
+func ExampleEffect_diamond() {
+	count, setCount := Signal(0)
+	double := Computed(func() int { return count() * 2 })
+	quad := Computed(func() int { return count() * 4 })
+
+	Effect(func() func() {
+		fmt.Println("running", double(), quad())
+
+		return func() {
+			fmt.Println("cleanup", double(), quad())
+		}
+	})
+
+	setCount(10)
+
+	// Output:
+	// running 0 0
+	// cleanup 20 40
+	// running 20 40
+}
+
+func ExampleEffect_diamondNested() {
+	count, setCount := Signal(0)
+	double := Computed(func() int { return count() * 2 })
+	quad := Computed(func() int { return count() * 4 })
+
+	Effect(func() func() {
+		fmt.Println("running", double(), quad())
+
+		Effect(func() func() {
+			fmt.Println("running nested", double(), quad())
+			return func() { fmt.Println("cleanup nested", double(), quad()) }
+		})
+
+		return func() { fmt.Println("cleanup", double(), quad()) }
+	})
+
+	setCount(10)
+
+	// Output:
+	// running 0 0
+	// running nested 0 0
+	// cleanup nested 20 40
+	// cleanup 20 40
+	// running 20 40
+	// running nested 20 40
+}
+
+func ExampleEffect_depsChange() {
+	count1, setCount1 := Signal(0)
+
+	initialized := false
+	Effect(func() func() {
+		fmt.Println("running")
+		if !initialized {
+			count1()
+		}
+		initialized = true
+
+		return nil
+	})
+
+	setCount1(1)
+	setCount1(2)
+
+	// Output:
+	// running
+	// running
 }
 
 func ExampleBatch() {
@@ -212,4 +283,82 @@ func ExampleBatch_nested() {
 	// updated
 	// cleanup
 	// changed 20
+}
+
+func ExampleOwner() {
+	o := Owner()
+
+	o.Run(func() {
+		Effect(func() func() {
+			fmt.Println("effect")
+
+			return func() { fmt.Println("cleanup") }
+		})
+	})
+
+	fmt.Println("ran")
+	o.Dispose()
+	fmt.Println("disposed")
+
+	// Output:
+	// effect
+	// ran
+	// cleanup
+	// disposed
+}
+
+func ExampleOwner_siblings() {
+	o := Owner()
+
+	o.Run(func() {
+		OnCleanup(func() {
+			fmt.Println("cleanup")
+		})
+
+		Effect(func() func() {
+			fmt.Println("running first")
+
+			Effect(func() func() {
+				fmt.Println("running nested")
+				return func() { fmt.Println("cleanup nested") }
+			})
+
+			return func() { fmt.Println("cleanup first") }
+		})
+
+		Effect(func() func() {
+			fmt.Println("running second")
+			return func() { fmt.Println("cleanup second") }
+		})
+	})
+
+	fmt.Println("ran")
+	o.Dispose()
+	fmt.Println("disposed")
+
+	// Output:
+	// running first
+	// running nested
+	// running second
+	// ran
+	// cleanup second
+	// cleanup nested
+	// cleanup first
+	// cleanup
+	// disposed
+}
+
+func ExampleOwner_onError() {
+	o := Owner()
+	o.OnError(func(err any) {
+		fmt.Println("cought", err)
+	})
+
+	o.Run(func() {
+		// should propagate if owner has no error listener
+		Owner().Run(func() { panic("oops") })
+	})
+
+	// Output:
+	// cought oops
 }

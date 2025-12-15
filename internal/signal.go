@@ -1,10 +1,14 @@
 package internal
 
+import "iter"
+
 type Signal struct {
 	*ReactiveNode
 
 	value        any
 	pendingValue *any // nil if no pending value
+
+	subsHead *DependencyLink
 }
 
 func (r *Runtime) NewSignal(initial any) *Signal {
@@ -13,17 +17,13 @@ func (r *Runtime) NewSignal(initial any) *Signal {
 		value:        initial,
 	}
 
-	s.fn = nil // signals don't recompute
-
 	return s
 }
 
 func (s *Signal) Read() any {
 	r := GetRuntime()
 
-	if r.tracker.ShouldTrack() {
-		r.tracker.currentNode.Link(s.ReactiveNode)
-	}
+	r.tracker.Track(s)
 
 	return s.Value()
 }
@@ -61,6 +61,60 @@ func (s *Signal) Commit() {
 		s.value = *s.pendingValue
 		s.pendingValue = nil
 	}
+}
+
+// Subs returns an iterator over all subscribers
+func (s *Signal) Subs() iter.Seq[*Computed] {
+	return func(yield func(*Computed) bool) {
+		link := s.subsHead
+		for link != nil {
+			if !yield(link.sub) {
+				return
+			}
+
+			link = link.nextSub
+		}
+	}
+}
+
+func (s *Signal) addSubLink(link *DependencyLink) {
+	if s.subsHead == nil {
+		s.subsHead = link
+		link.prevSub = link // loop to self
+		link.nextSub = nil
+	} else {
+		tail := s.subsHead.prevSub
+		tail.nextSub = link
+		link.prevSub = tail
+		link.nextSub = nil
+		s.subsHead.prevSub = link
+	}
+}
+
+func (s *Signal) removeSubLink(link *DependencyLink) {
+	// single node
+	if link.prevSub == link {
+		s.subsHead = nil
+		link.prevSub = nil
+		link.nextSub = nil
+		return
+	}
+
+	// multiple nodes
+	if link == s.subsHead {
+		s.subsHead = link.nextSub
+	} else {
+		link.prevSub.nextSub = link.nextSub
+	}
+
+	if link.nextSub != nil {
+		link.nextSub.prevSub = link.prevSub
+	} else {
+		s.subsHead.prevSub = link.prevSub
+	}
+
+	link.prevSub = nil
+	link.nextSub = nil
 }
 
 func isEqual(a, b any) bool {

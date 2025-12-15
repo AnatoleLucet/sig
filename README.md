@@ -1,5 +1,40 @@
 <h1 align="center"><code>sig</code></h1>
 
+<p align="center">Reactive signals in Go</p>
+
+```go
+count, setCount := sig.Signal(0)
+
+sig.Effect(func() func() {
+    fmt.Println("changed", count())
+    return nil
+})
+
+setCount(10)
+```
+
+## Features
+
+- Signals, effects, computed values (memos)
+- Batching
+- Automatic dependency tracking
+- Per-goroutine runtime isolation
+- Height-based priority scheduling
+- Topological ordering
+- Infinite loop detection
+- Staleness detection
+
+Coming soon:
+
+- Contexts
+- Untrack
+- Explicit ownership/disposal system
+- Async computed values
+
+## Introduction
+
+`sig` is based on the very latest from the SolidJS team ([sou](https://github.com/solidjs/signals)-[rc](https://x.com/RyanCarniato/status/1986922658232156382?s=20)-[e](https://x.com/RyanCarniato/status/1991922576541823275?s=20)-[s](https://github.com/milomg/r3)). It aims to be a fully fledged signal-based reactive system with async first support, that can be embedded anywhere.
+
 ## TODOs
 
 <details>
@@ -23,7 +58,7 @@ fmt.Println(count())
 <summary>☑️ computed</summary>
 
 ```go
-count, setCound := sig.Signal(1)
+count, setCount := sig.Signal(1)
 double := sig.Computed(func() int {
     fmt.Println("doubling")
     return count()*2
@@ -47,10 +82,10 @@ fmt.Println(double())
 </details>
 
 <details>
-<summary>🔄 effects</summary>
+<summary>☑️ effects</summary>
 
 ```go
-count, setCound := sig.Signal(1)
+count, setCount := sig.Signal(1)
 fmt.Println(count())
 
 sig.Effect(func() func() {
@@ -74,15 +109,15 @@ fmt.Println(count())
 <summary>☑️ batch</summary>
 
 ```go
-count, setCound := Signal(1)
+count, setCount := sig.Signal(1)
 fmt.Println(count())
 
-Effect(func() func() {
+sig.Effect(func() func() {
     fmt.Println(count()*2)
     return nil
 })
 
-Batch(func () {
+sig.Batch(func () {
     setCount(10)
     fmt.Println(count())
 })
@@ -98,7 +133,7 @@ Batch(func () {
 </details>
 
 <details>
-<summary>⬜ owner</summary>
+<summary>☑️ owner</summary>
 
 ```go
 // mainly used by framework authors to "own" a reactive context and dispose it when appropriate
@@ -108,7 +143,7 @@ owner.OnError(func (err error) {
 })
 
 owner.Run(func() {
-    count, setCound := sig.Signal(1)
+    count, setCount := sig.Signal(1)
     fmt.Println(count())
 
     sig.Effect(func() func() {
@@ -218,52 +253,12 @@ setOther(20)
 
 </details>
 
-### Solid's Architecture
+## FAQ
 
-```mermaid
-  graph TD
-      subgraph "Core Types"
-          RawSignal["RawSignal&lt;T&gt;<br/><small>_value, _subs, _statusFlags</small>"]
-          FirewallSignal["FirewallSignal&lt;T&gt;<br/><small>+ _owner, _nextChild</small>"]
-          Owner["Owner<br/><small>_disposal, _context, _queue</small>"]
-      end
+#### Differences with SolidJS's reactivity model
 
-      subgraph "Reactive Nodes"
-          Signal["Signal&lt;T&gt;<br/><small>RawSignal | FirewallSignal</small>"]
-          Computed["Computed&lt;T&gt;<br/><small>_deps, _fn, _height</small>"]
-          Effect["Effect&lt;T&gt;<br/><small>_effectFn, _cleanup</small>"]
-          Root["Root<br/><small>dispose()</small>"]
-      end
+TODO: instant flush and batching, multi-threading for async computed, no need for async effects because you can just `go fn()` wherever to go async
 
-      subgraph "Scheduling System"
-          Heap["Priority Heap<br/><small>dirty/zombie queues</small>"]
-          Queue["Effect Queue<br/><small>render/user effects</small>"]
-          Scheduler["Scheduler<br/><small>flush(), clock</small>"]
-      end
+## Credits
 
-      RawSignal --extends--> Signal
-      FirewallSignal --extends--> Signal
-
-      RawSignal --extends--> Computed
-      Owner --extends--> Computed
-      Owner --extends--> Root
-
-      Computed --extends--> Effect
-
-      Computed --inserted into--> Heap
-      Effect --enqueued in--> Queue
-
-      Heap --processed by--> Scheduler
-      Queue --processed by--> Scheduler
-```
-
----
-
-<details>
-<summary>
-The storying behind <code>sig</code>
-</summary>
-
-i have things to tell.
-
-</details>
+- Ryan Carniato, Milo Mighdoll, and [everyone else](https://github.com/orgs/solidjs/people) at SolidJS for pushing the limits of what's possible with reactive systems.

@@ -8,11 +8,11 @@ type PriorityHeap struct {
 
 	nodes []*heapNode // [height]head
 
-	loopkup map[*ReactiveNode]*heapNode // for O(1) removal
+	loopkup map[*Computed]*heapNode // for O(1) removal
 }
 
 type heapNode struct {
-	node *ReactiveNode
+	node *Computed
 
 	next *heapNode
 	prev *heapNode
@@ -23,11 +23,11 @@ func NewHeap() *PriorityHeap {
 		min:     0,
 		max:     0,
 		nodes:   make([]*heapNode, 2000),
-		loopkup: make(map[*ReactiveNode]*heapNode),
+		loopkup: make(map[*Computed]*heapNode),
 	}
 }
 
-func (h *PriorityHeap) Insert(node *ReactiveNode) {
+func (h *PriorityHeap) Insert(node *Computed) {
 	if node.HasFlag(FlagInHeap) {
 		return
 	}
@@ -57,13 +57,13 @@ func (h *PriorityHeap) Insert(node *ReactiveNode) {
 	}
 }
 
-func (h *PriorityHeap) InsertAll(nodes iter.Seq[*ReactiveNode]) {
+func (h *PriorityHeap) InsertAll(nodes iter.Seq[*Computed]) {
 	for node := range nodes {
 		h.Insert(node)
 	}
 }
 
-func (h *PriorityHeap) Remove(node *ReactiveNode) {
+func (h *PriorityHeap) Remove(node *Computed) {
 	if !node.HasFlag(FlagInHeap) {
 		return
 	}
@@ -104,7 +104,7 @@ func (h *PriorityHeap) Remove(node *ReactiveNode) {
 }
 
 // Drain processes each entry in topological order with the `process` function leaving the heap empty.
-func (h *PriorityHeap) Drain(process func(*ReactiveNode)) {
+func (h *PriorityHeap) Drain(process func(*Computed)) {
 	for h.min = 0; h.min <= h.max; h.min++ {
 		entry := h.nodes[h.min]
 

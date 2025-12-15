@@ -44,16 +44,33 @@ func IsPending(fn func()) bool {
 	return false
 }
 
+func OnCleanup(fn func()) {
+	internal.GetRuntime().OnCleanup(fn)
+}
+
 type context struct{ value any }
 
 func Context(initial any) *context       { return &context{initial} }
 func GetContext[T any](ctx *context) T   { return ctx.value.(T) }
 func SetContext(ctx *context, value any) { ctx.value = value }
 
-type owner struct{}
+type owner struct {
+	owner internal.Owner
+}
 
-func Owner() *owner                     { return &owner{} }
-func (o *owner) Run(fn func())          { fn() }
-func (o *owner) Dispose()               {}
-func (o *owner) OnError(fn func(error)) { fn(nil) }
-func (o *owner) OnDispose(fn func())    { fn() }
+func Owner() *owner {
+	return &owner{*internal.GetRuntime().NewOwner()}
+}
+
+func (o *owner) Run(fn func()) {
+	o.owner.Run(fn)
+}
+func (o *owner) Dispose() {
+	o.owner.Dispose()
+}
+func (o *owner) OnCleanup(fn func()) {
+	o.owner.OnCleanup(fn)
+}
+func (o *owner) OnError(fn func(any)) {
+	o.owner.OnError(fn)
+}

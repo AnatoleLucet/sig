@@ -59,32 +59,33 @@ func (r *Runtime) Flush() {
 	})
 }
 
-func (r *Runtime) recompute(node *ReactiveNode) {
-	// [x] clear deps
-	// [x] if fn!=nil run with node in exec context
-	// [ ] if height and value changed
-	//     [x] insert subs in dirty heap
+func (r *Runtime) CurrentOwner() *Owner {
+	return r.tracker.currentOwner
+}
 
+func (r *Runtime) CurrentComputation() *Computed {
+	return r.tracker.currentComputation
+}
+
+func (r *Runtime) OnCleanup(fn func()) {
+	owner := r.CurrentOwner()
+	if owner != nil {
+		owner.OnCleanup(fn)
+	}
+}
+
+func (r *Runtime) recompute(node *Computed) {
 	if node.fn == nil {
 		return
 	}
 
+	node.DisposeChildren()
+
 	node.ClearDeps()
 	node.SetVersion(r.scheduler.Time())
 
-	r.tracker.RunWithNode(node, node.fn)
+	r.tracker.RunWithComputation(node, node.fn)
 
-	// if node.MaxDepHeight() != oldHeight {
+	// todo: only do this if height and value changed
 	r.heap.InsertAll(node.Subs())
-	// }
 }
-
-// 0. setSignal
-//    set pending value
-//    insert subs in dirty heap
-// 1. schedule
-//    calls flush
-// 2. flush
-//    run dirty heap (recompute each node)
-//    commit pending values
-//    run render&user effect
