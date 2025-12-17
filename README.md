@@ -15,8 +15,7 @@ setCount(10)
 
 ## Features
 
-- Signals, effects, computed values (memos)
-- Batching
+- Signals, effects, computed values (memos), Batching, Untrack, and Owners
 - Automatic dependency tracking
 - Per-goroutine runtime isolation
 - Height-based priority scheduling
@@ -27,8 +26,6 @@ setCount(10)
 Coming soon:
 
 - Contexts
-- Untrack
-- Explicit ownership/disposal system
 - Async computed values
 
 ## Introduction
@@ -232,7 +229,7 @@ fmt.Println(theme)
 </details>
 
 <details>
-<summary>⬜ untrack</summary>
+<summary>☑️ untrack</summary>
 
 ```go
 count, setCount := sig.Signal(1)

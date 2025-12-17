@@ -37,7 +37,9 @@ func Effect(fn func() func()) {
 }
 
 func Untrack[T any](fn func() T) T {
-	return fn()
+	var result T
+	internal.GetRuntime().Untrack(func() { result = fn() })
+	return result
 }
 
 func IsPending(fn func()) bool {

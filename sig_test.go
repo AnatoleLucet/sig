@@ -362,3 +362,18 @@ func ExampleOwner_onError() {
 	// Output:
 	// cought oops
 }
+
+func ExampleUntrack() {
+	count, setCount := Signal(0)
+
+	Effect(func() func() {
+		c := Untrack(count)
+		fmt.Println("effect", c)
+		return nil
+	})
+
+	setCount(10)
+
+	// Output:
+	// effect 0
+}
