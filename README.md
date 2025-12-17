@@ -15,7 +15,7 @@ setCount(10)
 
 ## Features
 
-- Signals, effects, computed values (memos), Batching, Untrack, and Owners
+- Signals, effects, computed values (memos), batching, untrack, and owners
 - Automatic dependency tracking
 - Per-goroutine runtime isolation
 - Height-based priority scheduling
