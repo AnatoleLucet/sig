@@ -63,6 +63,7 @@ func ExampleEffect() {
 
 	setCount(10)
 	fmt.Println(count())
+	setCount(20)
 
 	// Output:
 	// 0
@@ -70,6 +71,8 @@ func ExampleEffect() {
 	// cleanup
 	// changed 10
 	// 10
+	// cleanup
+	// changed 20
 }
 
 func ExampleEffect_double() {

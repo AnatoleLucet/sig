@@ -117,6 +117,12 @@ func (s *Signal) removeSubLink(link *DependencyLink) {
 	link.nextSub = nil
 }
 
-func isEqual(a, b any) bool {
+func isEqual(a, b any) (result bool) {
+	defer func() {
+		if r := recover(); r != nil {
+			result = false
+		}
+	}()
+
 	return a == b
 }

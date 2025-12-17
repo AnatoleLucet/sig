@@ -39,7 +39,9 @@ func (r *Runtime) NewEffect(typ EffectType, effect func() func()) *Effect {
 func (e *Effect) run() {
 	r := GetRuntime()
 
-	r.effectQueue.Enqueue(e.typ, e.Computed.run)
+	r.effectQueue.Enqueue(e.typ, func() {
+		r.tracker.RunWithComputation(e.Computed, e.Computed.run)
+	})
 	r.Schedule()
 }
 

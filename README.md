@@ -22,6 +22,7 @@ setCount(10)
 - Topological ordering
 - Infinite loop detection
 - Staleness detection
+- Zero dependency
 
 Coming soon:
 
