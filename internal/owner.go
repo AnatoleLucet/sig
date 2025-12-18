@@ -8,8 +8,8 @@ type Owner struct {
 	// cleanup functions to be called when the node is disposed
 	cleanups []func()
 
-	// panic error handlers
-	catchers []func(any)
+	errorListeners   []func(any)
+	disposeListeners []func()
 
 	// the context values of this owner
 	context map[any]any
@@ -30,11 +30,11 @@ func (r *Runtime) NewOwner() *Owner {
 func (o *Owner) Run(fn func()) {
 	defer func() {
 		if r := recover(); r != nil {
-			if len(o.catchers) == 0 {
+			if len(o.errorListeners) == 0 {
 				panic(r)
 			}
 
-			for _, catcher := range o.catchers {
+			for _, catcher := range o.errorListeners {
 				catcher(r)
 			}
 		}
@@ -77,6 +77,10 @@ func (n *Owner) Dispose() {
 		n.cleanups[i]()
 	}
 	n.cleanups = nil
+
+	for _, fn := range n.disposeListeners {
+		fn()
+	}
 }
 
 func (n *Owner) DisposeChildren() {
@@ -90,6 +94,10 @@ func (n *Owner) OnCleanup(fn func()) {
 	n.cleanups = append(n.cleanups, fn)
 }
 
+func (n *Owner) OnDispose(fn func()) {
+	n.disposeListeners = append(n.disposeListeners, fn)
+}
+
 func (n *Owner) OnError(fn func(any)) {
-	n.catchers = append(n.catchers, fn)
+	n.errorListeners = append(n.errorListeners, fn)
 }

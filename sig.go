@@ -73,6 +73,9 @@ func (o *owner) Dispose() {
 func (o *owner) OnCleanup(fn func()) {
 	o.owner.OnCleanup(fn)
 }
+func (o *owner) OnDispose(fn func()) {
+	o.owner.OnDispose(fn)
+}
 func (o *owner) OnError(fn func(any)) {
 	o.owner.OnError(fn)
 }
