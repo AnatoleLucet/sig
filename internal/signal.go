@@ -1,6 +1,9 @@
 package internal
 
-import "iter"
+import (
+	"iter"
+	"reflect"
+)
 
 type Signal struct {
 	*ReactiveNode
@@ -29,16 +32,11 @@ func (s *Signal) Read() any {
 }
 
 func (s *Signal) Write(v any) {
-	r := GetRuntime()
-	// [x] check if value changed
-	// [x] set pending value
-	// [x] udpate node time
-	// [x] insert subs in dirty heap
-	// [x] schedule node
-
 	if isEqual(s.Value(), v) {
 		return
 	}
+
+	r := GetRuntime()
 
 	s.pendingValue = &v
 	s.SetVersion(r.scheduler.Time())
@@ -118,11 +116,25 @@ func (s *Signal) removeSubLink(link *DependencyLink) {
 }
 
 func isEqual(a, b any) (result bool) {
-	defer func() {
-		if r := recover(); r != nil {
-			result = false
-		}
-	}()
+	// todo: might want to make it configurable instead of always using reflect.DeepEqual
 
-	return a == b
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+
+	aVal := reflect.ValueOf(a)
+	bVal := reflect.ValueOf(b)
+
+	if aVal.Type() != bVal.Type() {
+		return false
+	}
+
+	if aVal.Type().Comparable() && bVal.Type().Comparable() {
+		return a == b
+	}
+
+	return reflect.DeepEqual(a, b)
 }

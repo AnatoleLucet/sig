@@ -59,13 +59,15 @@ func (r *Runtime) recompute(node *Computed) {
 		return
 	}
 
-	node.DisposeChildren()
+	oldValue := node.Value()
 
+	node.DisposeChildren()
 	node.ClearDeps()
 	node.SetVersion(r.scheduler.Time())
 
 	r.tracker.RunWithComputation(node, node.fn)
 
-	// todo: only do this if height and value changed
-	r.heap.InsertAll(node.Subs())
+	if !isEqual(oldValue, node.Value()) {
+		r.heap.InsertAll(node.Subs())
+	}
 }

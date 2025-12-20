@@ -48,6 +48,27 @@ func ExampleComputed() {
 	// 22
 }
 
+func ExampleComputed_check() {
+	count, setCount := Signal(1)
+	a := Computed(func() int {
+		fmt.Println("running a")
+		return count() * 0 // should never change
+	})
+	b := Computed(func() int {
+		fmt.Println("running b")
+		return a() + 1
+	})
+	a()
+	b()
+
+	setCount(10) // should not propagate to b since a did not change
+
+	// Output:
+	// running a
+	// running b
+	// running a
+}
+
 func ExampleEffect() {
 	count, setCount := Signal(0)
 
