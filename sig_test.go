@@ -331,6 +331,25 @@ func ExampleOwner() {
 	// disposed
 }
 
+func ExampleOwner_nested() {
+	o := Owner()
+	o.OnDispose(func() {
+		fmt.Println("parent disposed")
+	})
+
+	o.Run(func() {
+		Owner().OnDispose(func() {
+			fmt.Println("child disposed")
+		})
+	})
+
+	o.Dispose()
+
+	// Output:
+	// child disposed
+	// parent disposed
+}
+
 func ExampleOwner_siblings() {
 	o := Owner()
 

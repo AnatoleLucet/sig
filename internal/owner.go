@@ -21,10 +21,16 @@ type Owner struct {
 }
 
 func (r *Runtime) NewOwner() *Owner {
-	return &Owner{
+	o := &Owner{
 		cleanups: make([]func(), 0),
 		context:  make(map[any]any),
 	}
+
+	if parent := r.CurrentOwner(); parent != nil {
+		parent.AddChild(o)
+	}
+
+	return o
 }
 
 func (o *Owner) Run(fn func()) {
@@ -34,8 +40,8 @@ func (o *Owner) Run(fn func()) {
 				panic(r)
 			}
 
-			for _, catcher := range o.errorListeners {
-				catcher(r)
+			for _, fn := range o.errorListeners {
+				fn(r)
 			}
 		}
 	}()
@@ -73,8 +79,8 @@ func (n *Owner) Children() iter.Seq[*Owner] {
 func (n *Owner) Dispose() {
 	n.DisposeChildren()
 
-	for i := 0; i < len(n.cleanups); i++ {
-		n.cleanups[i]()
+	for _, fn := range n.cleanups {
+		fn()
 	}
 	n.cleanups = nil
 

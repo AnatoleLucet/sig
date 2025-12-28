@@ -23,10 +23,6 @@ func (r *Runtime) NewComputed(compute func(*Computed) any) *Computed {
 	}
 	c.fn = c.run
 
-	if parent := r.CurrentOwner(); parent != nil {
-		parent.AddChild(c.Owner)
-	}
-
 	c.OnCleanup(func() {
 		if c.depsHead != nil {
 			r.heap.Remove(c)

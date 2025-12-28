@@ -57,11 +57,11 @@ func GetContext[T any](ctx *context) T   { return ctx.value.(T) }
 func SetContext(ctx *context, value any) { ctx.value = value }
 
 type owner struct {
-	owner internal.Owner
+	owner *internal.Owner
 }
 
 func Owner() *owner {
-	return &owner{*internal.GetRuntime().NewOwner()}
+	return &owner{internal.GetRuntime().NewOwner()}
 }
 
 func (o *owner) Run(fn func()) {
