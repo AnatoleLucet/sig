@@ -312,12 +312,14 @@ func ExampleBatch_nested() {
 func ExampleOwner() {
 	o := Owner()
 
-	o.Run(func() {
+	o.Run(func() error {
 		Effect(func() func() {
 			fmt.Println("effect")
 
 			return func() { fmt.Println("cleanup") }
 		})
+
+		return nil
 	})
 
 	fmt.Println("ran")
@@ -337,10 +339,12 @@ func ExampleOwner_nested() {
 		fmt.Println("parent disposed")
 	})
 
-	o.Run(func() {
+	o.Run(func() error {
 		Owner().OnDispose(func() {
 			fmt.Println("child disposed")
 		})
+
+		return nil
 	})
 
 	o.Dispose()
@@ -353,7 +357,7 @@ func ExampleOwner_nested() {
 func ExampleOwner_siblings() {
 	o := Owner()
 
-	o.Run(func() {
+	o.Run(func() error {
 		OnCleanup(func() {
 			fmt.Println("cleanup")
 		})
@@ -373,6 +377,8 @@ func ExampleOwner_siblings() {
 			fmt.Println("running second")
 			return func() { fmt.Println("cleanup second") }
 		})
+
+		return nil
 	})
 
 	fmt.Println("ran")
@@ -397,9 +403,11 @@ func ExampleOwner_onError() {
 		fmt.Println("cought", err)
 	})
 
-	o.Run(func() {
+	o.Run(func() error {
 		// should propagate if owner has no error listener
-		Owner().Run(func() { panic("oops") })
+		Owner().Run(func() error { panic("oops") })
+
+		return nil
 	})
 
 	// Output:

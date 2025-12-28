@@ -64,8 +64,8 @@ func Owner() *owner {
 	return &owner{internal.GetRuntime().NewOwner()}
 }
 
-func (o *owner) Run(fn func()) {
-	o.owner.Run(fn)
+func (o *owner) Run(fn func() error) error {
+	return o.owner.Run(fn)
 }
 func (o *owner) Dispose() {
 	o.owner.Dispose()

@@ -33,7 +33,7 @@ func (r *Runtime) NewOwner() *Owner {
 	return o
 }
 
-func (o *Owner) Run(fn func()) {
+func (o *Owner) Run(fn func() error) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if len(o.errorListeners) == 0 {
@@ -47,7 +47,9 @@ func (o *Owner) Run(fn func()) {
 	}()
 
 	r := GetRuntime()
-	r.tracker.RunWithOwner(o, fn)
+	r.tracker.RunWithOwner(o, func() { err = fn() })
+
+	return err
 }
 
 func (parent *Owner) AddChild(child *Owner) {
