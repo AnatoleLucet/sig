@@ -1,7 +1,9 @@
 package sig
 
 import (
+	"errors"
 	"fmt"
+	"sync"
 )
 
 func ExampleSignal() {
@@ -14,6 +16,37 @@ func ExampleSignal() {
 	// Output:
 	// 0
 	// 10
+}
+
+func ExampleSignal_concurrentRW() {
+	var wg sync.WaitGroup
+	count, setCount := Signal(0)
+
+	wg.Go(func() {
+		setCount(count() + 1)
+	})
+
+	wg.Wait()
+	fmt.Println(count())
+
+	// Output:
+	// 1
+}
+
+func ExampleSignal_zero() {
+	err, setErr := Signal[error](nil)
+	fmt.Println(err())
+
+	setErr(errors.New("oops"))
+	fmt.Println(err())
+
+	setErr(nil)
+	fmt.Println(err())
+
+	// Output:
+	// <nil>
+	// oops
+	// <nil>
 }
 
 func ExampleComputed() {
@@ -221,6 +254,37 @@ func ExampleEffect_depsChange() {
 	// Output:
 	// running
 	// running
+}
+
+func ExampleEffect_concurrentRW() {
+	var wg sync.WaitGroup
+	count, setCount := Signal(0)
+
+	Effect(func() func() {
+		fmt.Println(count())
+
+		return nil
+	})
+
+	wg.Go(func() {
+		for {
+			if count() == 5 {
+				break
+			}
+
+			setCount(count() + 1)
+		}
+	})
+
+	wg.Wait()
+
+	// Output:
+	// 0
+	// 1
+	// 2
+	// 3
+	// 4
+	// 5
 }
 
 func ExampleBatch() {

@@ -3,7 +3,15 @@ package sig
 import "github.com/AnatoleLucet/sig/internal"
 
 func readAs[T any](s *internal.Signal) func() T {
-	return func() T { return s.Read().(T) }
+	return func() T {
+		v := s.Read()
+		if v == nil {
+			var zero T
+			return zero
+		}
+
+		return v.(T)
+	}
 }
 
 func writeAs[T any](s *internal.Signal) func(T) {
