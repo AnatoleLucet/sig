@@ -3,14 +3,13 @@
 <p align="center">Reactive signals in Go</p>
 
 ```go
-count, setCount := sig.Signal(0)
+count := sig.NewSignal(0)
 
-sig.Effect(func() func() {
-    fmt.Println("changed", count())
-    return nil
+sig.NewEffect(func() {
+    fmt.Println("changed", count.Read())
 })
 
-setCount(10)
+count.Write(10)
 ```
 
 ## Features
@@ -31,7 +30,9 @@ Coming soon:
 
 ## Introduction
 
-`sig` is based on the very latest from the SolidJS team ([sou](https://github.com/solidjs/signals)-[rc](https://x.com/RyanCarniato/status/1986922658232156382?s=20)-[e](https://x.com/RyanCarniato/status/1991922576541823275?s=20)-[s](https://github.com/milomg/r3)). It aims to be a fully fledged signal-based reactive system with async first support, that can be embedded anywhere.
+`sig` is based on the very latest from the SolidJS team ([sou](https://github.com/solidjs/signals)-[rc](https://x.com/RyanCarniato/status/1986922658232156382?s=20)-[e](https://x.com/RyanCarniato/status/1991922576541823275?s=20)-[s](https://github.com/milomg/r3)). It aims to be a fully fledged signal-based reactive model with async first support, that can be embedded anywhere.
+
+> Note: `sig` is purpose built for framework authors to add reactivity in their tool. For a more user-friendly and SolidJS-like API, see [loom/signals](https://github.com/AnatoleLucet/loom/tree/main/signals).
 
 ## TODOs
 
@@ -39,11 +40,11 @@ Coming soon:
 <summary>☑️ signals</summary>
 
 ```go
-count, setCount := sig.Signal(0)
-fmt.Println(count())
+count := sig.NewSignal(0)
+fmt.Println(count.Read())
 
-setCount(10)
-fmt.Println(count())
+count.Write(10)
+fmt.Println(count.Read())
 
 // Output
 // 0
@@ -56,17 +57,17 @@ fmt.Println(count())
 <summary>☑️ computed</summary>
 
 ```go
-count, setCount := sig.Signal(1)
-double := sig.Computed(func() int {
+count := sig.NewSignal(1)
+double := sig.NewComputed(func() int {
     fmt.Println("doubling")
-    return count()*2
+    return count.Read()*2
 })
-fmt.Println(count())
-fmt.Println(double())
+fmt.Println(count.Read())
+fmt.Println(double.Read())
 
-setCount(10)
-fmt.Println(count())
-fmt.Println(double())
+count.Write(10)
+fmt.Println(count.Read())
+fmt.Println(double.Read())
 
 // Output:
 // doubling
@@ -83,16 +84,15 @@ fmt.Println(double())
 <summary>☑️ effects</summary>
 
 ```go
-count, setCount := sig.Signal(1)
-fmt.Println(count())
+count := sig.NewSignal(1)
+fmt.Println(count.Read())
 
-sig.Effect(func() func() {
-    fmt.Println(count()*2)
-    return nil
+sig.NewEffect(func() {
+    fmt.Println(count.Read()*2)
 })
 
-setCount(10)
-fmt.Println(count())
+count.Write(10)
+fmt.Println(count.Read())
 
 // Output:
 // 1
@@ -107,17 +107,16 @@ fmt.Println(count())
 <summary>☑️ batch</summary>
 
 ```go
-count, setCount := sig.Signal(1)
-fmt.Println(count())
+count := sig.NewSignal(1)
+fmt.Println(count.Read())
 
-sig.Effect(func() func() {
-    fmt.Println(count()*2)
-    return nil
+sig.NewEffect(func() {
+    fmt.Println(count.Read()*2)
 })
 
-sig.Batch(func () {
-    setCount(10)
-    fmt.Println(count())
+sig.NewBatch(func () {
+    count.Write(10)
+    fmt.Println(count.Read())
 })
 
 // Output:
@@ -135,24 +134,24 @@ sig.Batch(func () {
 
 ```go
 // mainly used by framework authors to "own" a reactive context and dispose it when appropriate
-owner := sig.Owner()
-owner.OnError(func (err error) {
+owner := sig.NewOwner()
+owner.OnError(func (err any) {
     fmt.Println("recovered:", err)
 })
 
 owner.Run(func() {
-    count, setCount := sig.Signal(1)
-    fmt.Println(count())
+    count := sig.NewSignal(1)
+    fmt.Println(count.Read())
 
-    sig.Effect(func() func() {
-        fmt.Println(count()*2)
-        return func() {
+    sig.NewEffect(func() {
+        fmt.Println(count.Read()*2)
+        sig.OnCleanup(func() {
             fmt.Println("disposed")
-        }
+        })
     })
 
-    setCount(10)
-    fmt.Println(count())
+    count.Write(10)
+    fmt.Println(count.Read())
 })
 
 owner.Dispose()
@@ -173,12 +172,12 @@ owner.Dispose()
 <summary>⬜ async computed</summary>
 
 ```go
-userID, setUserID := sig.Signal(0)
-user := sig.AsyncComputed(func() (User, error) { // func is called in a goroutine
-    return getUser(userID())
+userID := sig.NewSignal(0)
+user := sig.NewAsyncComputed(func() (User, error) { // func is called in a goroutine
+    return getUser(userID.Read())
 })
 
-sig.Effect(func() func() {
+sig.NewEffect(func() {
     if sig.IsPending(user) { // uses the panic logic to know if the computed node has resolved yet or not
         fmt.Println("loading...")
         return nil
@@ -186,7 +185,7 @@ sig.Effect(func() func() {
 
     // if we're in a reactive scope and user has not resolved yet, this will panic and be recovered to tell the node one of its dependencies is not ready.
     // else it returns an error to avoid panics in a scope not owned by the reactive system.
-    u, err := user()
+    u, err := user.Read()
     if err {
         fmt.Println("error:", err)
         return nil
@@ -207,19 +206,19 @@ sig.Effect(func() func() {
 <summary>⬜ context</summary>
 
 ```go
-ctx := sig.Context("light") // default value
+ctx := sig.NewContext("light") // default value
 
-owner := sig.Owner()
+owner := sig.NewOwner()
 owner.Run(func() {
-    sig.SetContext[string](ctx, "dark")
+    ctx.Set("dark")
 
-    sig.Owner().Run(func() {
-        theme := sig.GetContext[string](ctx)
+    sig.NewOwner().Run(func() {
+        theme := ctx.Get()
         fmt.Println(theme)
     })
 })
 
-theme := sig.GetContext[string](ctx) // returns default value
+theme := ctx.Get() // returns default value
 fmt.Println(theme)
 
 // Output:
@@ -233,16 +232,15 @@ fmt.Println(theme)
 <summary>☑️ untrack</summary>
 
 ```go
-count, setCount := sig.Signal(1)
-other, setOther := sig.Signal(10)
+count := sig.NewSignal(1)
+other := sig.NewSignal(10)
 
-sig.Effect(func() func() {
-    fmt.Println(count(), sig.Untrack(other))
-    return nil
+sig.NewEffect(func() {
+    fmt.Println(count.Read(), sig.Untrack(other.Read))
 })
 
-setCount(2)
-setOther(20)
+count.Write(2)
+other.Write(20)
 
 // Output:
 // 1, 10
@@ -259,4 +257,4 @@ TODO: instant flush and batching, multi-threading for async computed, no need fo
 
 ## Credits
 
-- Ryan Carniato, Milo Mighdoll, and [everyone else](https://github.com/orgs/solidjs/people) at SolidJS for pushing the limits of what's possible with reactive systems.
+- Ryan Carniato, Milo Mighdoll, and everyone else involved in the JS community for pushing the limits of what's possible with reactive systems.

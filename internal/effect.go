@@ -13,25 +13,18 @@ type Effect struct {
 	typ EffectType
 }
 
-func (r *Runtime) NewEffect(typ EffectType, effect func() func()) *Effect {
+func (r *Runtime) NewEffect(typ EffectType, effect func()) *Effect {
 	var e *Effect
 
 	e = &Effect{
-		// an effect is just a computed that returns a cleanup function
 		Computed: r.NewComputed(func(node *Computed) any {
-			initialized := e != nil
-			if initialized {
-				e.runCleanup()
-			}
-
-			return effect()
+			effect()
+			return nil
 		}),
 
 		typ: typ,
 	}
 	e.fn = e.run
-
-	e.OnCleanup(func() { e.runCleanup() })
 
 	return e
 }
@@ -43,11 +36,4 @@ func (e *Effect) run() {
 		r.tracker.RunWithComputation(e.Computed, e.Computed.run)
 	})
 	r.Schedule()
-}
-
-func (e *Effect) runCleanup() {
-	cleanup := e.Value()
-	if fn, ok := cleanup.(func()); ok && fn != nil {
-		fn()
-	}
 }

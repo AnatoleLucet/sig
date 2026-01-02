@@ -7,11 +7,11 @@ import (
 )
 
 func ExampleSignal() {
-	count, setCount := Signal(0)
-	fmt.Println(count())
+	count := NewSignal(0)
+	fmt.Println(count.Read())
 
-	setCount(10)
-	fmt.Println(count())
+	count.Write(10)
+	fmt.Println(count.Read())
 
 	// Output:
 	// 0
@@ -20,28 +20,28 @@ func ExampleSignal() {
 
 func ExampleSignal_concurrentRW() {
 	var wg sync.WaitGroup
-	count, setCount := Signal(0)
+	count := NewSignal(0)
 
 	wg.Go(func() {
-		setCount(count() + 1)
+		count.Write(count.Read() + 1)
 	})
 
 	wg.Wait()
-	fmt.Println(count())
+	fmt.Println(count.Read())
 
 	// Output:
 	// 1
 }
 
 func ExampleSignal_zero() {
-	err, setErr := Signal[error](nil)
-	fmt.Println(err())
+	err := NewSignal[error](nil)
+	fmt.Println(err.Read())
 
-	setErr(errors.New("oops"))
-	fmt.Println(err())
+	err.Write(errors.New("oops"))
+	fmt.Println(err.Read())
 
-	setErr(nil)
-	fmt.Println(err())
+	err.Write(nil)
+	fmt.Println(err.Read())
 
 	// Output:
 	// <nil>
@@ -50,23 +50,23 @@ func ExampleSignal_zero() {
 }
 
 func ExampleComputed() {
-	count, setCount := Signal(1)
-	double := Computed(func() int {
+	count := NewSignal(1)
+	double := NewComputed(func() int {
 		fmt.Println("doubling")
-		return count() * 2
+		return count.Read() * 2
 	})
-	plustwo := Computed(func() int {
+	plustwo := NewComputed(func() int {
 		fmt.Println("adding")
-		return double() + 2
+		return double.Read() + 2
 	})
-	fmt.Println(count())
-	fmt.Println(double())
-	fmt.Println(plustwo())
+	fmt.Println(count.Read())
+	fmt.Println(double.Read())
+	fmt.Println(plustwo.Read())
 
-	setCount(10)
-	fmt.Println(count())
-	fmt.Println(double())
-	fmt.Println(plustwo())
+	count.Write(10)
+	fmt.Println(count.Read())
+	fmt.Println(double.Read())
+	fmt.Println(plustwo.Read())
 
 	// Output:
 	// doubling
@@ -82,19 +82,19 @@ func ExampleComputed() {
 }
 
 func ExampleComputed_check() {
-	count, setCount := Signal(1)
-	a := Computed(func() int {
+	count := NewSignal(1)
+	a := NewComputed(func() int {
 		fmt.Println("running a")
-		return count() * 0 // should never change
+		return count.Read() * 0 // should never change
 	})
-	b := Computed(func() int {
+	b := NewComputed(func() int {
 		fmt.Println("running b")
-		return a() + 1
+		return a.Read() + 1
 	})
-	a()
-	b()
+	a.Read()
+	b.Read()
 
-	setCount(10) // should not propagate to b since a did not change
+	count.Write(10) // should not propagate to b since a did not change
 
 	// Output:
 	// running a
@@ -102,22 +102,46 @@ func ExampleComputed_check() {
 	// running a
 }
 
-func ExampleEffect() {
-	count, setCount := Signal(0)
+func ExampleComputed_disposal() {
+	count := NewSignal(1)
+	double := NewComputed(func() int {
+		fmt.Println("computing")
 
-	fmt.Println(count())
+		NewEffect(func() {
+			fmt.Println("effect", count.Read())
 
-	Effect(func() func() {
-		fmt.Println("changed", count())
+			OnCleanup(func() {
+				fmt.Println("cleanup", count.Read())
+			})
+		})
 
-		return func() {
-			fmt.Println("cleanup")
-		}
+		return count.Read() * 2
 	})
 
-	setCount(10)
-	fmt.Println(count())
-	setCount(20)
+	fmt.Println(double.Read())
+
+	count.Write(10)
+	fmt.Println(double.Read())
+
+	// Output:
+}
+
+func ExampleEffect() {
+	count := NewSignal(0)
+
+	fmt.Println(count.Read())
+
+	NewEffect(func() {
+		fmt.Println("changed", count.Read())
+
+		OnCleanup(func() {
+			fmt.Println("cleanup")
+		})
+	})
+
+	count.Write(10)
+	fmt.Println(count.Read())
+	count.Write(20)
 
 	// Output:
 	// 0
@@ -130,24 +154,22 @@ func ExampleEffect() {
 }
 
 func ExampleEffect_double() {
-	count, setCount := Signal(0)
-	double, setDouble := Signal(0)
+	count := NewSignal(0)
+	double := NewSignal(0)
 
-	Effect(func() func() {
-		setDouble(count() * 2)
-
-		return nil
+	NewEffect(func() {
+		double.Write(count.Read() * 2)
 	})
 
-	Effect(func() func() {
-		fmt.Println("changed", double())
+	NewEffect(func() {
+		fmt.Println("changed", double.Read())
 
-		return func() {
+		OnCleanup(func() {
 			fmt.Println("cleanup")
-		}
+		})
 	})
 
-	setCount(10)
+	count.Write(10)
 
 	// Output:
 	// changed 0
@@ -156,26 +178,26 @@ func ExampleEffect_double() {
 }
 
 func ExampleEffect_nested() {
-	count, setCount := Signal(0)
+	count := NewSignal(0)
 
-	Effect(func() func() {
-		count()
+	NewEffect(func() {
+		count.Read()
 		fmt.Println("running")
 
-		Effect(func() func() {
+		NewEffect(func() {
 			fmt.Println("running nested")
 
-			return func() {
+			OnCleanup(func() {
 				fmt.Println("cleanup nested")
-			}
+			})
 		})
 
-		return func() {
+		OnCleanup(func() {
 			fmt.Println("cleanup")
-		}
+		})
 	})
 
-	setCount(10)
+	count.Write(10)
 
 	// Output:
 	// running
@@ -187,19 +209,19 @@ func ExampleEffect_nested() {
 }
 
 func ExampleEffect_diamond() {
-	count, setCount := Signal(0)
-	double := Computed(func() int { return count() * 2 })
-	quad := Computed(func() int { return count() * 4 })
+	count := NewSignal(0)
+	double := NewComputed(func() int { return count.Read() * 2 })
+	quad := NewComputed(func() int { return count.Read() * 4 })
 
-	Effect(func() func() {
-		fmt.Println("running", double(), quad())
+	NewEffect(func() {
+		fmt.Println("running", double.Read(), quad.Read())
 
-		return func() {
-			fmt.Println("cleanup", double(), quad())
-		}
+		OnCleanup(func() {
+			fmt.Println("cleanup", double.Read(), quad.Read())
+		})
 	})
 
-	setCount(10)
+	count.Write(10)
 
 	// Output:
 	// running 0 0
@@ -208,22 +230,22 @@ func ExampleEffect_diamond() {
 }
 
 func ExampleEffect_diamondNested() {
-	count, setCount := Signal(0)
-	double := Computed(func() int { return count() * 2 })
-	quad := Computed(func() int { return count() * 4 })
+	count := NewSignal(0)
+	double := NewComputed(func() int { return count.Read() * 2 })
+	quad := NewComputed(func() int { return count.Read() * 4 })
 
-	Effect(func() func() {
-		fmt.Println("running", double(), quad())
+	NewEffect(func() {
+		fmt.Println("running", double.Read(), quad.Read())
 
-		Effect(func() func() {
-			fmt.Println("running nested", double(), quad())
-			return func() { fmt.Println("cleanup nested", double(), quad()) }
+		NewEffect(func() {
+			fmt.Println("running nested", double.Read(), quad.Read())
+			OnCleanup(func() { fmt.Println("cleanup nested", double.Read(), quad.Read()) })
 		})
 
-		return func() { fmt.Println("cleanup", double(), quad()) }
+		OnCleanup(func() { fmt.Println("cleanup", double.Read(), quad.Read()) })
 	})
 
-	setCount(10)
+	count.Write(10)
 
 	// Output:
 	// running 0 0
@@ -235,21 +257,19 @@ func ExampleEffect_diamondNested() {
 }
 
 func ExampleEffect_depsChange() {
-	count1, setCount1 := Signal(0)
+	count := NewSignal(0)
 
 	initialized := false
-	Effect(func() func() {
+	NewEffect(func() {
 		fmt.Println("running")
 		if !initialized {
-			count1()
+			count.Read()
 		}
 		initialized = true
-
-		return nil
 	})
 
-	setCount1(1)
-	setCount1(2)
+	count.Write(1)
+	count.Write(2)
 
 	// Output:
 	// running
@@ -258,21 +278,20 @@ func ExampleEffect_depsChange() {
 
 func ExampleEffect_concurrentRW() {
 	var wg sync.WaitGroup
-	count, setCount := Signal(0)
+	count := NewSignal(0)
 
-	Effect(func() func() {
-		fmt.Println(count())
+	NewEffect(func() {
+		fmt.Println(count.Read())
 
-		return nil
 	})
 
 	wg.Go(func() {
 		for {
-			if count() == 5 {
+			if count.Read() == 5 {
 				break
 			}
 
-			setCount(count() + 1)
+			count.Write(count.Read() + 1)
 		}
 	})
 
@@ -287,20 +306,20 @@ func ExampleEffect_concurrentRW() {
 	// 5
 }
 
-func ExampleBatch() {
-	count, setCount := Signal(0)
+func ExampleNewBatch() {
+	count := NewSignal(0)
 
-	Effect(func() func() {
-		fmt.Println("changed", count())
+	NewEffect(func() {
+		fmt.Println("changed", count.Read())
 
-		return func() {
+		OnCleanup(func() {
 			fmt.Println("cleanup")
-		}
+		})
 	})
 
-	Batch(func() {
-		setCount(10)
-		setCount(20)
+	NewBatch(func() {
+		count.Write(10)
+		count.Write(20)
 		fmt.Println("updated")
 	})
 
@@ -311,29 +330,29 @@ func ExampleBatch() {
 	// changed 20
 }
 
-func ExampleBatch_double() {
-	count, setCount := Signal(0)
-	double, setDouble := Signal(0)
+func ExampleNewBatch_double() {
+	count := NewSignal(0)
+	double := NewSignal(0)
 
-	Effect(func() func() {
-		fmt.Println("count", count())
+	NewEffect(func() {
+		fmt.Println("count", count.Read())
 
-		return func() {
+		OnCleanup(func() {
 			fmt.Println("count cleanup")
-		}
+		})
 	})
 
-	Effect(func() func() {
-		fmt.Println("double", double())
+	NewEffect(func() {
+		fmt.Println("double", double.Read())
 
-		return func() {
+		OnCleanup(func() {
 			fmt.Println("double cleanup")
-		}
+		})
 	})
 
-	Batch(func() {
-		setCount(10)
-		setDouble(count() * 2)
+	NewBatch(func() {
+		count.Write(10)
+		double.Write(count.Read() * 2)
 		fmt.Println("updated")
 	})
 
@@ -347,21 +366,21 @@ func ExampleBatch_double() {
 	// double 20
 }
 
-func ExampleBatch_nested() {
-	count, setCount := Signal(0)
+func ExampleNewBatch_nested() {
+	count := NewSignal(0)
 
-	Effect(func() func() {
-		fmt.Println("changed", count())
+	NewEffect(func() {
+		fmt.Println("changed", count.Read())
 
-		return func() {
+		OnCleanup(func() {
 			fmt.Println("cleanup")
-		}
+		})
 	})
 
-	Batch(func() {
-		setCount(10)
-		Batch(func() {
-			setCount(20)
+	NewBatch(func() {
+		count.Write(10)
+		NewBatch(func() {
+			count.Write(20)
 		})
 		fmt.Println("updated")
 	})
@@ -374,13 +393,13 @@ func ExampleBatch_nested() {
 }
 
 func ExampleOwner() {
-	o := Owner()
+	o := NewOwner()
 
 	o.Run(func() error {
-		Effect(func() func() {
+		NewEffect(func() {
 			fmt.Println("effect")
 
-			return func() { fmt.Println("cleanup") }
+			OnCleanup(func() { fmt.Println("cleanup") })
 		})
 
 		return nil
@@ -398,13 +417,13 @@ func ExampleOwner() {
 }
 
 func ExampleOwner_nested() {
-	o := Owner()
+	o := NewOwner()
 	o.OnDispose(func() {
 		fmt.Println("parent disposed")
 	})
 
 	o.Run(func() error {
-		Owner().OnDispose(func() {
+		NewOwner().OnDispose(func() {
 			fmt.Println("child disposed")
 		})
 
@@ -419,27 +438,27 @@ func ExampleOwner_nested() {
 }
 
 func ExampleOwner_siblings() {
-	o := Owner()
+	o := NewOwner()
 
 	o.Run(func() error {
 		OnCleanup(func() {
 			fmt.Println("cleanup")
 		})
 
-		Effect(func() func() {
+		NewEffect(func() {
 			fmt.Println("running first")
 
-			Effect(func() func() {
+			NewEffect(func() {
 				fmt.Println("running nested")
-				return func() { fmt.Println("cleanup nested") }
+				OnCleanup(func() { fmt.Println("cleanup nested") })
 			})
 
-			return func() { fmt.Println("cleanup first") }
+			OnCleanup(func() { fmt.Println("cleanup first") })
 		})
 
-		Effect(func() func() {
+		NewEffect(func() {
 			fmt.Println("running second")
-			return func() { fmt.Println("cleanup second") }
+			OnCleanup(func() { fmt.Println("cleanup second") })
 		})
 
 		return nil
@@ -462,14 +481,14 @@ func ExampleOwner_siblings() {
 }
 
 func ExampleOwner_onError() {
-	o := Owner()
+	o := NewOwner()
 	o.OnError(func(err any) {
 		fmt.Println("cought", err)
 	})
 
 	o.Run(func() error {
 		// should propagate if owner has no error listener
-		Owner().Run(func() error { panic("oops") })
+		NewOwner().Run(func() error { panic("oops") })
 
 		return nil
 	})
@@ -479,15 +498,14 @@ func ExampleOwner_onError() {
 }
 
 func ExampleUntrack() {
-	count, setCount := Signal(0)
+	count := NewSignal(0)
 
-	Effect(func() func() {
-		c := Untrack(count)
+	NewEffect(func() {
+		c := Untrack(count.Read)
 		fmt.Println("effect", c)
-		return nil
 	})
 
-	setCount(10)
+	count.Write(10)
 
 	// Output:
 	// effect 0

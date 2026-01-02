@@ -6,6 +6,8 @@ type Computed struct {
 	*Owner
 	*Signal
 
+	initialized bool
+
 	// called whenever the nodes has to recompute its value
 	fn func()
 
@@ -37,6 +39,11 @@ func (r *Runtime) NewComputed(compute func(*Computed) any) *Computed {
 }
 
 func (c *Computed) run() {
+	if c.initialized {
+		c.Dispose()
+	}
+	c.initialized = true
+
 	value := c.compute(c)
 	c.pendingValue = &value
 }
