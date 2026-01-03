@@ -11,16 +11,15 @@ import (
 func main() {
 	doc := js.Global().Get("document")
 
-	count, setCount := sig.Signal(0)
+	count := sig.NewSignal(0)
 
-	sig.Effect(func() func() {
-		doc.Call("getElementById", "count").Set("textContent", count())
-		return nil
+	sig.NewEffect(func() {
+		doc.Call("getElementById", "count").Set("textContent", count.Read())
 	})
 
 	doc.Call("getElementById", "btn").Call("addEventListener", "click",
 		js.FuncOf(func(this js.Value, args []js.Value) any {
-			setCount(count() + 1)
+			count.Write(count.Read() + 1)
 			return nil
 		}))
 

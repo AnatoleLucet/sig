@@ -486,12 +486,27 @@ func ExampleOwner_onError() {
 		fmt.Println("cought", err)
 	})
 
+	var err *Signal[error]
+
 	o.Run(func() error {
 		// should propagate if owner has no error listener
-		NewOwner().Run(func() error { panic("oops") })
+		NewOwner().Run(func() error {
+			err = NewSignal[error](nil)
+
+			NewEffect(func() {
+				if e := err.Read(); e != nil {
+					panic(e)
+				}
+			})
+
+			return nil
+		})
 
 		return nil
 	})
+
+	// check if panic in effects are caught
+	err.Write(errors.New("oops"))
 
 	// Output:
 	// cought oops

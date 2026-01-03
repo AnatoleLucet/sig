@@ -14,6 +14,8 @@ func NewTracker() *Tracker {
 }
 
 func (t *Tracker) RunWithOwner(owner *Owner, fn func()) {
+	defer owner.recover()
+
 	prev := t.currentOwner
 	t.currentOwner = owner
 	defer func() { t.currentOwner = prev }()
@@ -22,6 +24,8 @@ func (t *Tracker) RunWithOwner(owner *Owner, fn func()) {
 }
 
 func (t *Tracker) RunWithComputation(node *Computed, fn func()) {
+	defer node.recover()
+
 	prevOwner := t.currentOwner
 	prevComputation := t.currentComputation
 

@@ -34,18 +34,6 @@ func (r *Runtime) NewOwner() *Owner {
 }
 
 func (o *Owner) Run(fn func() error) (err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			if len(o.errorListeners) == 0 {
-				panic(r)
-			}
-
-			for _, fn := range o.errorListeners {
-				fn(r)
-			}
-		}
-	}()
-
 	r := GetRuntime()
 	r.tracker.RunWithOwner(o, func() { err = fn() })
 
@@ -108,4 +96,22 @@ func (n *Owner) OnDispose(fn func()) {
 
 func (n *Owner) OnError(fn func(any)) {
 	n.errorListeners = append(n.errorListeners, fn)
+}
+
+func (n *Owner) recover() {
+	r := recover()
+	if r == nil {
+		return
+	}
+
+	for owner := n; owner != nil; owner = owner.parent {
+		if len(owner.errorListeners) > 0 {
+			for _, fn := range owner.errorListeners {
+				fn(r)
+			}
+			return
+		}
+	}
+
+	panic(r)
 }
