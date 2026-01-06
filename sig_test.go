@@ -559,6 +559,31 @@ func ExampleOwner_disposal() {
 	// effect 1
 }
 
+func ExampleOwner_effectDisposal() {
+	o := NewOwner()
+
+	count := NewSignal(0)
+
+	NewEffect(func() {
+		if count.Read() > 0 {
+			o.Dispose()
+		}
+	})
+
+	o.Run(func() error {
+		NewEffect(func() {
+			fmt.Println("inside", count.Read())
+		})
+
+		return nil
+	})
+
+	count.Write(1)
+
+	// Output:
+	// inside 0
+}
+
 func ExampleUntrack() {
 	count := NewSignal(0)
 

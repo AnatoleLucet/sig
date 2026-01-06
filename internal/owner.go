@@ -66,6 +66,15 @@ func (n *Owner) Children() iter.Seq[*Owner] {
 	}
 }
 
+func (n *Owner) Cleanup() {
+	n.DisposeChildren()
+
+	for _, fn := range n.cleanups {
+		fn()
+	}
+	n.cleanups = nil
+}
+
 func (n *Owner) Dispose() {
 	n.DisposeChildren()
 

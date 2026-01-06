@@ -29,8 +29,8 @@ func (r *Runtime) NewComputed(compute func(*Computed) any) *Computed {
 		if c.depsHead != nil {
 			r.heap.Remove(c)
 			c.ClearDeps()
-			c.SetFlags(FlagNone)
 		}
+		c.SetFlags(FlagDisposed)
 	})
 
 	r.recompute(c)
@@ -40,7 +40,7 @@ func (r *Runtime) NewComputed(compute func(*Computed) any) *Computed {
 
 func (c *Computed) run() {
 	if c.initialized {
-		c.Dispose()
+		c.Cleanup()
 	}
 	c.initialized = true
 
