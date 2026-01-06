@@ -512,6 +512,30 @@ func ExampleOwner_onError() {
 	// cought oops
 }
 
+func ExampleOwner_disposal() {
+	o := NewOwner()
+
+	count := NewSignal(0)
+
+	o.Run(func() error {
+		NewEffect(func() {
+			fmt.Println("effect", count.Read())
+		})
+
+		return nil
+	})
+
+	count.Write(1)
+	o.Dispose()
+
+	// this should not trigger the effect
+	count.Write(2)
+
+	// Output:
+	// effect 0
+	// effect 1
+}
+
 func ExampleUntrack() {
 	count := NewSignal(0)
 

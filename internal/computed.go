@@ -25,7 +25,7 @@ func (r *Runtime) NewComputed(compute func(*Computed) any) *Computed {
 	}
 	c.fn = c.run
 
-	c.OnCleanup(func() {
+	c.OnDispose(func() {
 		if c.depsHead != nil {
 			r.heap.Remove(c)
 			c.ClearDeps()
