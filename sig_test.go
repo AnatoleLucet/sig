@@ -286,11 +286,7 @@ func ExampleEffect_concurrentRW() {
 	})
 
 	wg.Go(func() {
-		for {
-			if count.Read() == 5 {
-				break
-			}
-
+		for count.Read() < 5 {
 			count.Write(count.Read() + 1)
 		}
 	})
@@ -304,6 +300,33 @@ func ExampleEffect_concurrentRW() {
 	// 3
 	// 4
 	// 5
+}
+
+func ExampleEffect_doubleConcurrentRW() {
+	var wg sync.WaitGroup
+	a := NewSignal(0)
+	b := NewSignal(0)
+
+	wg.Go(func() {
+		for b.Read() < 5 {
+			b.Write(b.Read() + 1)
+		}
+	})
+
+	wg.Go(func() {
+		a.Read()
+		a.Write(1)
+	})
+
+	NewEffect(func() {
+		fmt.Println(a.Read())
+	})
+
+	wg.Wait()
+
+	// Output:
+	// 0
+	// 1
 }
 
 func ExampleNewBatch() {

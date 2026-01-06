@@ -2,15 +2,31 @@
 
 package internal
 
-import "sync"
+import (
+	"bytes"
+	"runtime"
+	"strconv"
+	"sync"
+)
 
-var once sync.Once
-var globalRuntime *Runtime
+var runtimes sync.Map
 
 func GetRuntime() *Runtime {
-	once.Do(func() {
-		globalRuntime = NewRuntime()
-	})
+	gid := getGoroutineID()
 
-	return globalRuntime
+	if r, ok := runtimes.Load(gid); ok {
+		return r.(*Runtime)
+	}
+
+	r := NewRuntime()
+	runtimes.Store(gid, r)
+	return r
+}
+
+func getGoroutineID() int64 {
+	var buf [64]byte
+	n := runtime.Stack(buf[:], false)
+	idField := bytes.Fields(buf[:n])[1]
+	id, _ := strconv.ParseInt(string(idField), 10, 64)
+	return id
 }
