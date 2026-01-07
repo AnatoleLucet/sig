@@ -36,7 +36,7 @@ func (h *PriorityHeap) Insert(node *Computed) {
 	entry := &heapNode{node: node}
 	h.loopkup[node] = entry
 
-	height := node.height
+	height := node.GetHeight()
 
 	if h.nodes[height] == nil {
 		h.nodes[height] = entry
@@ -75,7 +75,7 @@ func (h *PriorityHeap) Remove(node *Computed) {
 	}
 	delete(h.loopkup, node)
 
-	height := entry.node.height
+	height := entry.node.GetHeight()
 
 	// single node
 	if entry.prev == entry {

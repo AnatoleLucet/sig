@@ -32,7 +32,7 @@ Coming soon:
 
 `sig` is based on the very latest from the SolidJS team ([sou](https://github.com/solidjs/signals)-[rc](https://x.com/RyanCarniato/status/1986922658232156382?s=20)-[e](https://x.com/RyanCarniato/status/1991922576541823275?s=20)-[s](https://github.com/milomg/r3)). It aims to be a fully fledged signal-based reactive model with async first support, that can be embedded anywhere.
 
-> Note: `sig` is purpose built for framework authors to add reactivity in their tool. For a more user-friendly and SolidJS-like API, see [loom/signals](https://github.com/AnatoleLucet/loom/tree/main/signals).
+> Note: `sig` is purpose built for framework authors to add reactivity in their tool. For a more user-friendly and SolidJS-like API, see [loom/signals](https://github.com/AnatoleLucet/loom/tree/main/core/signals).
 
 ## TODOs
 

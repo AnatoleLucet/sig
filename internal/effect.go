@@ -24,7 +24,10 @@ func (r *Runtime) NewEffect(typ EffectType, effect func()) *Effect {
 
 		typ: typ,
 	}
+
+	e.mu.Lock()
 	e.fn = e.run
+	e.mu.Unlock()
 
 	return e
 }
@@ -32,7 +35,7 @@ func (r *Runtime) NewEffect(typ EffectType, effect func()) *Effect {
 func (e *Effect) run() {
 	r := GetRuntime()
 
-	r.effectQueue.Enqueue(e.typ, func() {
+	r.effectQueue.Enqueue(e.Type(), func() {
 		if e.HasFlag(FlagDisposed) {
 			return
 		}
@@ -40,4 +43,10 @@ func (e *Effect) run() {
 		r.tracker.RunWithComputation(e.Computed, e.Computed.run)
 	})
 	r.Schedule()
+}
+
+func (e *Effect) Type() EffectType {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return e.typ
 }

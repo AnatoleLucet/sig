@@ -3,11 +3,13 @@ package internal
 import (
 	"iter"
 	"reflect"
+	"sync"
 )
 
 type Signal struct {
 	*ReactiveNode
 
+	mu           sync.RWMutex
 	value        any
 	pendingValue *any // nil if no pending value
 
@@ -32,29 +34,39 @@ func (s *Signal) Read() any {
 }
 
 func (s *Signal) Write(v any) {
-	if isEqual(s.Value(), v) {
+	r := GetRuntime()
+
+	s.mu.Lock()
+	if isEqual(s.valueUnsafe(), v) {
+		s.mu.Unlock()
 		return
 	}
 
-	r := GetRuntime()
-
 	s.pendingValue = &v
 	s.SetVersion(r.scheduler.Time())
+	r.heap.InsertAll(s.subsUnsafe())
+	s.mu.Unlock()
 
-	r.heap.InsertAll(s.Subs())
 	r.Schedule()
 }
 
 func (s *Signal) Value() any {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.valueUnsafe()
+}
+
+func (s *Signal) valueUnsafe() any {
 	if s.pendingValue != nil {
 		return *s.pendingValue
 	}
-
 	return s.value
 }
 
 // Commit applies the pending value to the signal
 func (s *Signal) Commit() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if s.pendingValue != nil {
 		s.value = *s.pendingValue
 		s.pendingValue = nil
@@ -64,6 +76,8 @@ func (s *Signal) Commit() {
 // Subs returns an iterator over all subscribers
 func (s *Signal) Subs() iter.Seq[*Computed] {
 	return func(yield func(*Computed) bool) {
+		s.mu.RLock()
+		defer s.mu.RUnlock()
 		link := s.subsHead
 		for link != nil {
 			if !yield(link.sub) {
@@ -75,7 +89,22 @@ func (s *Signal) Subs() iter.Seq[*Computed] {
 	}
 }
 
+// subsUnsafe returns an iterator over subscribers, caller must hold lock
+func (s *Signal) subsUnsafe() iter.Seq[*Computed] {
+	return func(yield func(*Computed) bool) {
+		link := s.subsHead
+		for link != nil {
+			if !yield(link.sub) {
+				return
+			}
+			link = link.nextSub
+		}
+	}
+}
+
 func (s *Signal) addSubLink(link *DependencyLink) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if s.subsHead == nil {
 		s.subsHead = link
 		link.prevSub = link // loop to self
@@ -90,6 +119,8 @@ func (s *Signal) addSubLink(link *DependencyLink) {
 }
 
 func (s *Signal) removeSubLink(link *DependencyLink) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	// single node
 	if link.prevSub == link {
 		s.subsHead = nil

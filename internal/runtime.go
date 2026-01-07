@@ -55,7 +55,8 @@ func (r *Runtime) OnCleanup(fn func()) {
 }
 
 func (r *Runtime) recompute(node *Computed) {
-	if node.fn == nil {
+	fn := node.getFn()
+	if fn == nil {
 		return
 	}
 
@@ -65,7 +66,7 @@ func (r *Runtime) recompute(node *Computed) {
 	node.ClearDeps()
 	node.SetVersion(r.scheduler.Time())
 
-	r.tracker.RunWithComputation(node, node.fn)
+	r.tracker.RunWithComputation(node, fn)
 
 	if !isEqual(oldValue, node.Value()) {
 		r.heap.InsertAll(node.Subs())

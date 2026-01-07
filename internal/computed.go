@@ -1,11 +1,15 @@
 package internal
 
-import "iter"
+import (
+	"iter"
+	"sync"
+)
 
 type Computed struct {
 	*Owner
 	*Signal
 
+	mu          sync.RWMutex
 	initialized bool
 
 	// called whenever the nodes has to recompute its value
@@ -18,12 +22,14 @@ type Computed struct {
 
 func (r *Runtime) NewComputed(compute func(*Computed) any) *Computed {
 	c := &Computed{
-		Owner:  r.NewOwner(),
-		Signal: r.NewSignal(nil),
-
+		Owner:   r.NewOwner(),
+		Signal:  r.NewSignal(nil),
 		compute: compute,
 	}
+
+	c.mu.Lock()
 	c.fn = c.run
+	c.mu.Unlock()
 
 	c.OnDispose(func() {
 		if c.depsHead != nil {
@@ -39,13 +45,18 @@ func (r *Runtime) NewComputed(compute func(*Computed) any) *Computed {
 }
 
 func (c *Computed) run() {
+	c.mu.Lock()
 	if c.initialized {
 		c.Cleanup()
 	}
 	c.initialized = true
+	c.mu.Unlock()
 
 	value := c.compute(c)
+
+	c.Signal.mu.Lock()
 	c.pendingValue = &value
+	c.Signal.mu.Unlock()
 }
 
 // Link creates a bidirectional dependency link between this node (subcriber) and the given node (dependency).
@@ -66,8 +77,8 @@ func (c *Computed) Link(sub *Computed, dep *Signal) {
 	dep.addSubLink(link)
 
 	// Update subscriber height if needed
-	if dep.height >= sub.height {
-		sub.height = dep.height + 1
+	if dep.GetHeight() >= sub.GetHeight() {
+		sub.SetHeight(dep.GetHeight() + 1)
 	}
 }
 
@@ -85,8 +96,17 @@ func (c *Computed) Deps() iter.Seq[*Signal] {
 	}
 }
 
+func (c *Computed) getFn() func() {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.fn
+}
+
 // ClearDeps removes all dependencies
 func (c *Computed) ClearDeps() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	for link := c.depsHead; link != nil; {
 		next := link.nextDep
 		link.dep.removeSubLink(link)
@@ -100,8 +120,8 @@ func (c *Computed) ClearDeps() {
 func (c *Computed) MaxDepHeight() int {
 	maxHeight := 0
 	for dep := range c.Deps() {
-		if dep.height >= maxHeight {
-			maxHeight = dep.height + 1
+		if dep.GetHeight() >= maxHeight {
+			maxHeight = dep.GetHeight() + 1
 		}
 	}
 

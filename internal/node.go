@@ -1,5 +1,7 @@
 package internal
 
+import "sync"
+
 type NodeFlags int
 
 const (
@@ -11,6 +13,8 @@ const (
 )
 
 type ReactiveNode struct {
+	mu sync.RWMutex
+
 	// the node's state
 	flags NodeFlags
 
@@ -27,24 +31,46 @@ func (r *Runtime) NewNode() *ReactiveNode {
 
 // HasFlag checks if the given flag is set
 func (n *ReactiveNode) HasFlag(flag NodeFlags) bool {
+	n.mu.RLock()
+	defer n.mu.RUnlock()
 	return n.flags&flag != 0
 }
 
 // AddFlag adds the given flag
 func (n *ReactiveNode) AddFlag(flag NodeFlags) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
 	n.flags |= flag
 }
 
 // RemoveFlag removes the given flag
 func (n *ReactiveNode) RemoveFlag(flag NodeFlags) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
 	n.flags &^= flag
 }
 
 // SetFlags sets the flags to exact value
 func (n *ReactiveNode) SetFlags(flags NodeFlags) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
 	n.flags = flags
 }
 
 func (n *ReactiveNode) SetVersion(t Tick) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
 	n.version = t
+}
+
+func (n *ReactiveNode) GetHeight() int {
+	n.mu.RLock()
+	defer n.mu.RUnlock()
+	return n.height
+}
+
+func (n *ReactiveNode) SetHeight(h int) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	n.height = h
 }
