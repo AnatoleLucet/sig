@@ -139,7 +139,7 @@ owner.OnError(func (err any) {
     fmt.Println("recovered:", err)
 })
 
-owner.Run(func() {
+err := owner.Run(func() error {
     count := sig.NewSignal(1)
     fmt.Println(count.Read())
 
@@ -152,6 +152,8 @@ owner.Run(func() {
 
     count.Write(10)
     fmt.Println(count.Read())
+
+    return nil
 })
 
 owner.Dispose()
@@ -203,19 +205,23 @@ sig.NewEffect(func() {
 </details>
 
 <details>
-<summary>⬜ context</summary>
+<summary>☑️ context</summary>
 
 ```go
 ctx := sig.NewContext("light") // default value
 
 owner := sig.NewOwner()
-owner.Run(func() {
+owner.Run(func() error {
     ctx.Set("dark")
 
-    sig.NewOwner().Run(func() {
+    sig.NewOwner().Run(func() error {
         theme := ctx.Get()
         fmt.Println(theme)
+
+        return nil
     })
+
+    return nil
 })
 
 theme := ctx.Get() // returns default value

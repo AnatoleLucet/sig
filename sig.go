@@ -2,8 +2,7 @@ package sig
 
 import "github.com/AnatoleLucet/sig/internal"
 
-func readAs[T any](s *internal.Signal) T {
-	v := s.Read()
+func as[T any](v any) T {
 	if v == nil {
 		var zero T
 		return zero
@@ -25,7 +24,7 @@ func NewSignal[T any](initial T) *Signal[T] {
 
 // Read the current value of the signal, tracking the dependency if within a reactive context.
 func (s *Signal[T]) Read() T {
-	return readAs[T](s.signal)
+	return as[T](s.signal.Read())
 }
 
 // Write a new value to the signal, triggering updates to any dependents.
@@ -48,7 +47,7 @@ func NewComputed[T any](compute func() T) *Computed[T] {
 
 // Read the current value of the computed signal, tracking the dependency if within a reactive context.
 func (c *Computed[T]) Read() T {
-	return readAs[T](c.computed.Signal)
+	return as[T](c.computed.Signal.Read())
 }
 
 type AsyncComputed[T any] struct{}
@@ -92,11 +91,27 @@ func OnCleanup(fn func()) {
 	internal.GetRuntime().OnCleanup(fn)
 }
 
-type Context[T any] struct{ value T }
+type Context[T any] struct {
+	ctx *internal.Context
+}
 
-func NewContext[T any](initial T) *Context[T] { return &Context[T]{initial} }
-func (c *Context[T]) Get() T                  { return c.value }
-func (c *Context[T]) Set(value T)             { c.value = value }
+// NewContext creates a new reactive context with an initial value.
+func NewContext[T any](initial T) *Context[T] {
+	return &Context[T]{
+		internal.GetRuntime().NewContext(initial),
+	}
+}
+
+// Value retrieves the current value of the context,
+// inheriting from parent owners if not set in the current owner.
+func (c *Context[T]) Value() T {
+	return as[T](c.ctx.Value())
+}
+
+// Set a new value for the context in the current owner.
+func (c *Context[T]) Set(value T) {
+	c.ctx.Set(value)
+}
 
 type Owner struct {
 	owner *internal.Owner
