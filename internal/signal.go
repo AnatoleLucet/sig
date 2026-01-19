@@ -9,6 +9,8 @@ import (
 type Signal struct {
 	*ReactiveNode
 
+	runtime *Runtime
+
 	mu           sync.RWMutex
 	value        any
 	pendingValue *any // nil if no pending value
@@ -19,6 +21,7 @@ type Signal struct {
 func (r *Runtime) NewSignal(initial any) *Signal {
 	s := &Signal{
 		ReactiveNode: r.NewNode(),
+		runtime:      r,
 		value:        initial,
 	}
 
@@ -26,16 +29,12 @@ func (r *Runtime) NewSignal(initial any) *Signal {
 }
 
 func (s *Signal) Read() any {
-	r := GetRuntime()
-
-	r.tracker.Track(s)
+	s.runtime.tracker.Track(s)
 
 	return s.Value()
 }
 
 func (s *Signal) Write(v any) {
-	r := GetRuntime()
-
 	s.mu.Lock()
 	if isEqual(s.valueUnsafe(), v) {
 		s.mu.Unlock()
@@ -43,11 +42,14 @@ func (s *Signal) Write(v any) {
 	}
 
 	s.pendingValue = &v
-	s.SetVersion(r.scheduler.Time())
-	r.heap.InsertAll(s.subsUnsafe())
 	s.mu.Unlock()
 
-	r.Schedule()
+	s.runtime.mu.Lock()
+	s.SetVersion(s.runtime.scheduler.Time())
+	s.runtime.heap.InsertAll(s.Subs())
+	s.runtime.mu.Unlock()
+
+	s.runtime.Schedule()
 }
 
 func (s *Signal) Value() any {
@@ -89,22 +91,7 @@ func (s *Signal) Subs() iter.Seq[*Computed] {
 	}
 }
 
-// subsUnsafe returns an iterator over subscribers, caller must hold lock
-func (s *Signal) subsUnsafe() iter.Seq[*Computed] {
-	return func(yield func(*Computed) bool) {
-		link := s.subsHead
-		for link != nil {
-			if !yield(link.sub) {
-				return
-			}
-			link = link.nextSub
-		}
-	}
-}
-
 func (s *Signal) addSubLink(link *DependencyLink) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
 	if s.subsHead == nil {
 		s.subsHead = link
 		link.prevSub = link // loop to self

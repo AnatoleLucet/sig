@@ -33,7 +33,7 @@ func (r *Runtime) NewEffect(typ EffectType, effect func()) *Effect {
 }
 
 func (e *Effect) run() {
-	r := GetRuntime()
+	r := e.runtime
 
 	r.effectQueue.Enqueue(e.Type(), func() {
 		if e.HasFlag(FlagDisposed) {
@@ -42,7 +42,6 @@ func (e *Effect) run() {
 
 		r.tracker.RunWithComputation(e.Computed, e.Computed.run)
 	})
-	r.Schedule()
 }
 
 func (e *Effect) Type() EffectType {

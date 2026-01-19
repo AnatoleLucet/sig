@@ -1,6 +1,12 @@
 package internal
 
+import (
+	"sync"
+)
+
 type Runtime struct {
+	mu sync.Mutex
+
 	heap        *PriorityHeap
 	tracker     *Tracker
 	batcher     *Batcher
@@ -21,30 +27,46 @@ func NewRuntime() *Runtime {
 }
 
 func (r *Runtime) Schedule() {
+	r.mu.Lock()
 	r.scheduler.Schedule()
+	shouldFlush := !r.batcher.IsBatching()
+	r.mu.Unlock()
 
-	if !r.batcher.IsBatching() {
+	if shouldFlush {
 		r.Flush()
 	}
 }
 
 func (r *Runtime) Flush() {
-	r.scheduler.Run(func() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	err := r.scheduler.Run(func() {
 		r.heap.Drain(r.recompute)
 
 		r.nodeQueue.Commit()
 
+		// unlock for effects to allow signal writes
+		r.mu.Unlock()
+
 		r.effectQueue.RunEffects(EffectRender)
 		r.effectQueue.RunEffects(EffectUser)
+
+		// lock again in case effects scheduled more work
+		r.mu.Lock()
 	})
+
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (r *Runtime) CurrentOwner() *Owner {
-	return r.tracker.currentOwner
+	return r.tracker.CurrentOwner()
 }
 
 func (r *Runtime) CurrentComputation() *Computed {
-	return r.tracker.currentComputation
+	return r.tracker.CurrentComputation()
 }
 
 func (r *Runtime) OnCleanup(fn func()) {

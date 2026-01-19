@@ -1,6 +1,8 @@
 package internal
 
-import "iter"
+import (
+	"iter"
+)
 
 type PriorityHeap struct {
 	min int

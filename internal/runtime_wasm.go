@@ -12,7 +12,7 @@ import (
 var runtimes sync.Map
 
 func GetRuntime() *Runtime {
-	gid := getGoroutineID()
+	gid := getGID()
 
 	if r, ok := runtimes.Load(gid); ok {
 		return r.(*Runtime)
@@ -23,7 +23,7 @@ func GetRuntime() *Runtime {
 	return r
 }
 
-func getGoroutineID() int64 {
+func getGID() int64 {
 	var buf [64]byte
 	n := runtime.Stack(buf[:], false)
 	idField := bytes.Fields(buf[:n])[1]

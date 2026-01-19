@@ -14,7 +14,7 @@ count.Write(10)
 
 ## Features
 
-- Signals, effects, computed values (memos), batching, untrack, and owners
+- Signals, effects, computed values (memos), contexts, batching, untrack, and owners
 - Automatic dependency tracking
 - Per-goroutine runtime isolation
 - Height-based priority scheduling
@@ -25,7 +25,6 @@ count.Write(10)
 
 Coming soon:
 
-- Contexts
 - Async computed values
 
 ## Introduction
@@ -257,10 +256,10 @@ other.Write(20)
 
 ## FAQ
 
-#### Differences with SolidJS's reactivity model
+#### Differences with SolidJS's reactive model
 
 TODO: instant flush and batching, multi-threading for async computed, no need for async effects because you can just `go fn()` wherever to go async
 
 ## Credits
 
-- Ryan Carniato, Milo Mighdoll, and everyone else involved in the JS community for pushing the limits of what's possible with reactive systems.
+- Ryan Carniato, Milo Mighdoll, and everyone else pushing the limits of what's possible with reactive systems <3

@@ -180,7 +180,37 @@ func TestEffect(t *testing.T) {
 		}, log)
 	})
 
-	t.Run("concurrent read/write", func(t *testing.T) {
+	t.Run("goroutine isolation", func(t *testing.T) {
+		// run lots of times to make sure it's not a fluke
+		for range 1000 {
+			var wg sync.WaitGroup
+
+			a := NewSignal(0)
+			b := NewSignal(0)
+
+			wg.Go(func() {
+				for b.Read() < 5 {
+					b.Write(b.Read() + 1)
+				}
+			})
+
+			calls := 0
+			NewEffect(func() {
+				a.Read()
+				calls++
+			})
+
+			a.Write(1)
+
+			wg.Wait()
+
+			if !assert.Equal(t, 2, calls, "effect should only run twice") {
+				break
+			}
+		}
+	})
+
+	t.Run("read/write from goroutine", func(t *testing.T) {
 		var wg sync.WaitGroup
 		var mu sync.Mutex
 		log := []int{}
@@ -202,35 +232,5 @@ func TestEffect(t *testing.T) {
 		wg.Wait()
 
 		assert.Equal(t, []int{0, 1, 2, 3, 4, 5}, log)
-	})
-
-	t.Run("double concurrent read/write", func(t *testing.T) {
-		var wg sync.WaitGroup
-		var mu sync.Mutex
-		log := []int{}
-
-		a := NewSignal(0)
-		b := NewSignal(0)
-
-		wg.Go(func() {
-			for b.Read() < 5 {
-				b.Write(b.Read() + 1)
-			}
-		})
-
-		wg.Go(func() {
-			a.Read()
-			a.Write(1)
-		})
-
-		NewEffect(func() {
-			mu.Lock()
-			log = append(log, a.Read())
-			mu.Unlock()
-		})
-
-		wg.Wait()
-
-		assert.Equal(t, []int{0, 1}, log)
 	})
 }

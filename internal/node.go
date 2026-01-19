@@ -7,9 +7,9 @@ type NodeFlags int
 const (
 	FlagNone     NodeFlags = 0
 	FlagCheck    NodeFlags = 1 << 0 // node needs to be checked for updates
-	FlagDirty    NodeFlags = 2 << 0 // node is dirty and needs to be recomputed
-	FlagInHeap   NodeFlags = 3 << 0 // node is currently in heap for update scheduling
-	FlagDisposed NodeFlags = 4 << 0 // node has been disposed
+	FlagDirty    NodeFlags = 1 << 1 // node is dirty and needs to be recomputed
+	FlagInHeap   NodeFlags = 1 << 2 // node is currently in heap for update scheduling
+	FlagDisposed NodeFlags = 1 << 3 // node has been disposed
 )
 
 type ReactiveNode struct {

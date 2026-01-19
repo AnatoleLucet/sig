@@ -46,11 +46,13 @@ func (r *Runtime) NewComputed(compute func(*Computed) any) *Computed {
 
 func (c *Computed) run() {
 	c.mu.Lock()
-	if c.initialized {
-		c.Cleanup()
-	}
+	shouldCleanup := c.initialized
 	c.initialized = true
 	c.mu.Unlock()
+
+	if shouldCleanup {
+		c.Cleanup()
+	}
 
 	value := c.compute(c)
 
@@ -61,10 +63,12 @@ func (c *Computed) run() {
 
 // Link creates a bidirectional dependency link between this node (subcriber) and the given node (dependency).
 func (c *Computed) Link(sub *Computed, dep *Signal) {
+	sub.mu.Lock()
 	// dont link if already present as the most recent dependency
 	if sub.depsHead != nil {
 		tail := sub.depsHead.prevDep
 		if tail.dep == dep {
+			sub.mu.Unlock()
 			return
 		}
 	}
@@ -74,9 +78,13 @@ func (c *Computed) Link(sub *Computed, dep *Signal) {
 	link := &DependencyLink{dep: dep, sub: sub}
 
 	sub.addDepLink(link)
-	dep.addSubLink(link)
+	sub.mu.Unlock()
 
-	// Update subscriber height if needed
+	dep.mu.Lock()
+	dep.addSubLink(link)
+	dep.mu.Unlock()
+
+	// update subscriber height if needed
 	if dep.GetHeight() >= sub.GetHeight() {
 		sub.SetHeight(dep.GetHeight() + 1)
 	}
@@ -85,6 +93,8 @@ func (c *Computed) Link(sub *Computed, dep *Signal) {
 // Deps returns an iterator over all dependencies
 func (c *Computed) Deps() iter.Seq[*Signal] {
 	return func(yield func(*Signal) bool) {
+		c.mu.RLock()
+		defer c.mu.RUnlock()
 		link := c.depsHead
 		for link != nil {
 			if !yield(link.dep) {
@@ -105,15 +115,18 @@ func (c *Computed) getFn() func() {
 // ClearDeps removes all dependencies
 func (c *Computed) ClearDeps() {
 	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	for link := c.depsHead; link != nil; {
-		next := link.nextDep
-		link.dep.removeSubLink(link)
-		link = next
+	// collect while locking
+	var links []*DependencyLink
+	for link := c.depsHead; link != nil; link = link.nextDep {
+		links = append(links, link)
 	}
-
 	c.depsHead = nil
+	c.mu.Unlock()
+
+	// remove links without holding lock
+	for _, link := range links {
+		link.dep.removeSubLink(link)
+	}
 }
 
 // MaxDepHeight returns the maximum height of the node's dependencies

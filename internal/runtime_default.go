@@ -11,7 +11,7 @@ import (
 var runtimes sync.Map
 
 func GetRuntime() *Runtime {
-	gid := goid.Get()
+	gid := getGID()
 
 	if r, ok := runtimes.Load(gid); ok {
 		return r.(*Runtime)
@@ -20,4 +20,8 @@ func GetRuntime() *Runtime {
 	r := NewRuntime()
 	runtimes.Store(gid, r)
 	return r
+}
+
+func getGID() int64 {
+	return goid.Get()
 }
