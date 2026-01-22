@@ -26,7 +26,11 @@ func NewRuntime() *Runtime {
 	}
 }
 
-func (r *Runtime) Schedule() {
+func (r *Runtime) Schedule(force bool) {
+	if !force && r.scheduler.IsRunning() {
+		return
+	}
+
 	r.mu.Lock()
 	r.scheduler.Schedule()
 	shouldFlush := !r.batcher.IsBatching()

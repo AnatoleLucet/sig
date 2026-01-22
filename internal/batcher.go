@@ -29,5 +29,7 @@ func (b *Batcher) Batch(fn, onComplete func()) {
 }
 
 func (r *Runtime) NewBatch(fn func()) {
-	r.batcher.Batch(fn, r.Flush)
+	r.batcher.Batch(fn, func() {
+		r.Schedule(true)
+	})
 }

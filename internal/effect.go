@@ -43,9 +43,7 @@ func (e *Effect) run() {
 		r.tracker.RunWithComputation(e.Computed, e.Computed.run)
 	})
 
-	if !r.scheduler.IsRunning() {
-		r.Schedule()
-	}
+	r.Schedule(false)
 }
 
 func (e *Effect) Type() EffectType {

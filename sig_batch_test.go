@@ -2,6 +2,7 @@ package sig
 
 import (
 	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -100,6 +101,36 @@ func TestBatch(t *testing.T) {
 			"updated",
 			"cleanup",
 			"changed 20",
+		}, log)
+	})
+
+	t.Run("batch from different goroutine", func(t *testing.T) {
+		var wg sync.WaitGroup
+		log := []string{}
+
+		count := NewSignal(0)
+		NewEffect(func() {
+			log = append(log, fmt.Sprintf("changed %d", count.Read()))
+
+			OnCleanup(func() {
+				log = append(log, "cleanup")
+			})
+		})
+
+		wg.Go(func() {
+			NewBatch(func() {
+				count.Write(10)
+				log = append(log, "updated")
+			})
+		})
+
+		wg.Wait()
+
+		assert.Equal(t, []string{
+			"changed 0",
+			"updated",
+			"cleanup",
+			"changed 10",
 		}, log)
 	})
 }

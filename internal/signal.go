@@ -9,8 +9,6 @@ import (
 type Signal struct {
 	*ReactiveNode
 
-	runtime *Runtime
-
 	mu           sync.RWMutex
 	value        any
 	pendingValue *any // nil if no pending value
@@ -21,7 +19,6 @@ type Signal struct {
 func (r *Runtime) NewSignal(initial any) *Signal {
 	s := &Signal{
 		ReactiveNode: r.NewNode(),
-		runtime:      r,
 		value:        initial,
 	}
 
@@ -29,7 +26,7 @@ func (r *Runtime) NewSignal(initial any) *Signal {
 }
 
 func (s *Signal) Read() any {
-	s.runtime.tracker.Track(s)
+	GetRuntime().tracker.Track(s)
 
 	return s.Value()
 }
@@ -44,12 +41,14 @@ func (s *Signal) Write(v any) {
 	s.pendingValue = &v
 	s.mu.Unlock()
 
-	s.runtime.mu.Lock()
-	s.SetVersion(s.runtime.scheduler.Time())
-	s.runtime.heap.InsertAll(s.Subs())
-	s.runtime.mu.Unlock()
+	r := GetRuntime()
 
-	s.runtime.Schedule()
+	r.mu.Lock()
+	s.SetVersion(r.scheduler.Time())
+	r.heap.InsertAll(s.Subs())
+	r.mu.Unlock()
+
+	r.Schedule(true)
 }
 
 func (s *Signal) Value() any {
