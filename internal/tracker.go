@@ -1,6 +1,8 @@
 package internal
 
-import "sync"
+import (
+	"sync"
+)
 
 type Tracker struct {
 	mu sync.RWMutex

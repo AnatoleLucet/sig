@@ -76,12 +76,9 @@ func (n *Owner) Cleanup() {
 }
 
 func (n *Owner) Dispose() {
-	n.DisposeChildren()
+	defer n.recover()
 
-	for _, fn := range n.cleanups {
-		fn()
-	}
-	n.cleanups = nil
+	n.Cleanup()
 
 	for _, fn := range n.disposeListeners {
 		fn()

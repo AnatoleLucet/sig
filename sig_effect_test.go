@@ -214,6 +214,7 @@ func TestEffect(t *testing.T) {
 		var wg sync.WaitGroup
 		var mu sync.Mutex
 		log := []int{}
+		cleanups := 0
 
 		count := NewSignal(0)
 
@@ -221,6 +222,12 @@ func TestEffect(t *testing.T) {
 			mu.Lock()
 			log = append(log, count.Read())
 			mu.Unlock()
+
+			OnCleanup(func() {
+				mu.Lock()
+				cleanups++
+				mu.Unlock()
+			})
 		})
 
 		wg.Go(func() {
@@ -232,5 +239,6 @@ func TestEffect(t *testing.T) {
 		wg.Wait()
 
 		assert.Equal(t, []int{0, 1, 2, 3, 4, 5}, log)
+		assert.Equal(t, 5, cleanups)
 	})
 }
