@@ -242,3 +242,38 @@ func TestEffect(t *testing.T) {
 		assert.Equal(t, 5, cleanups)
 	})
 }
+
+func TestRenderEffect(t *testing.T) {
+	t.Run("runs before user effects", func(t *testing.T) {
+		log := []string{}
+
+		count := NewSignal(0)
+
+		NewEffect(func() {
+			log = append(log, fmt.Sprintf("user %d", count.Read()))
+
+			OnCleanup(func() {
+				log = append(log, "cleanup user")
+			})
+		})
+
+		NewRenderEffect(func() {
+			log = append(log, fmt.Sprintf("render %d", count.Read()))
+
+			OnCleanup(func() {
+				log = append(log, "cleanup render")
+			})
+		})
+
+		count.Write(10)
+
+		assert.Equal(t, []string{
+			"user 0",
+			"render 0",
+			"cleanup render",
+			"render 10",
+			"cleanup user",
+			"user 10",
+		}, log)
+	})
+}

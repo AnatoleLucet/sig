@@ -74,6 +74,12 @@ func NewEffect(fn func()) {
 	internal.GetRuntime().NewEffect(internal.EffectUser, fn)
 }
 
+// NewRenderEffect creates a reactive effect specifically for rendering purposes.
+// Render effects runs before regular effects to ensure the UI is updated promptly.
+func NewRenderEffect(fn func()) {
+	internal.GetRuntime().NewEffect(internal.EffectRender, fn)
+}
+
 // Untrack runs the given function without tracking any reactive dependencies.
 func Untrack[T any](fn func() T) T {
 	var result T
@@ -89,6 +95,24 @@ func IsPending(fn func()) bool {
 // OnCleanup registers a function to be called when the current owner is disposed.
 func OnCleanup(fn func()) {
 	internal.GetRuntime().OnCleanup(fn)
+}
+
+// OnSettled registers a function to be called once, after the current runtime
+// has finished processing all pending updates and effects.
+func OnSettled(fn func()) {
+	internal.GetRuntime().OnSettled(fn)
+}
+
+// OnUserSettled registers a function to be called once, after all user effects have been processed.
+// Note that user effects scheduled during the execution of this function will not trigger another call.
+func OnUserSettled(fn func()) {
+	internal.GetRuntime().OnUserSettled(fn)
+}
+
+// OnRenderSettled registers a function to be called once, after all render effects have been processed.
+// Note that render effects scheduled during the execution of this function will not trigger another call.
+func OnRenderSettled(fn func()) {
+	internal.GetRuntime().OnRenderSettled(fn)
 }
 
 type Context[T any] struct {

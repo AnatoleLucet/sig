@@ -50,3 +50,26 @@ func (q *NodeQueue) Commit() {
 
 	q.signals = q.signals[:0]
 }
+
+type SettledQueue struct {
+	callbacks []func()
+}
+
+func NewSettledQueue() *SettledQueue {
+	return &SettledQueue{
+		callbacks: make([]func(), 0),
+	}
+}
+
+func (q *SettledQueue) Enqueue(fn func()) {
+	q.callbacks = append(q.callbacks, fn)
+}
+
+func (q *SettledQueue) Run() {
+	callbacks := q.callbacks
+	q.callbacks = q.callbacks[:0]
+
+	for _, cb := range callbacks {
+		cb()
+	}
+}
