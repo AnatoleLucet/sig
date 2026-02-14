@@ -40,12 +40,12 @@ func TestOwner(t *testing.T) {
 		log := []string{}
 
 		o := NewOwner()
-		o.OnDispose(func() {
+		o.OnCleanup(func() {
 			log = append(log, "parent disposed")
 		})
 
 		o.Run(func() error {
-			NewOwner().OnDispose(func() {
+			NewOwner().OnCleanup(func() {
 				log = append(log, "child disposed")
 			})
 

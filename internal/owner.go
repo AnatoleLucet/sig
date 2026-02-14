@@ -83,6 +83,7 @@ func (n *Owner) Dispose() {
 	for _, fn := range n.disposeListeners {
 		fn()
 	}
+	n.disposeListeners = nil
 }
 
 func (n *Owner) DisposeChildren() {
@@ -92,10 +93,12 @@ func (n *Owner) DisposeChildren() {
 	n.childrenHead = nil
 }
 
+// OnCleanup registers a function to be called ONCE when this node recomputes (for Computed) AND when the owner is disposed
 func (n *Owner) OnCleanup(fn func()) {
 	n.cleanups = append(n.cleanups, fn)
 }
 
+// OnDispose registers a function to be called ONCE, only when the owner is disposed (not when this Computed node is recomputed)
 func (n *Owner) OnDispose(fn func()) {
 	n.disposeListeners = append(n.disposeListeners, fn)
 }

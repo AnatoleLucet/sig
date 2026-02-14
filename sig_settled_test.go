@@ -136,6 +136,34 @@ func TestOnSettled(t *testing.T) {
 			"settled",
 		}, log)
 	})
+
+	t.Run("runs when registered during flush", func(t *testing.T) {
+		log := []string{}
+
+		count := NewSignal(0)
+		NewEffect(func() {
+			log = append(log, fmt.Sprintf("changed %d", count.Read()))
+
+			OnSettled(func() {
+				log = append(log, "settled")
+			})
+
+			OnCleanup(func() {
+				log = append(log, "cleanup")
+			})
+
+		})
+
+		count.Write(10)
+
+		assert.Equal(t, []string{
+			"changed 0",
+			"cleanup",
+			"changed 10",
+			"settled",
+			"settled", // was also registered during first run, but is only called after a flush
+		}, log)
+	})
 }
 
 func TestOnUserSettled(t *testing.T) {
@@ -299,6 +327,34 @@ func TestOnRenderSettled(t *testing.T) {
 			"settled",
 			"B cleanup",
 			"B changed 20",
+		}, log)
+	})
+
+	t.Run("runs when registered during flush", func(t *testing.T) {
+		log := []string{}
+
+		count := NewSignal(0)
+
+		NewRenderEffect(func() {
+			log = append(log, fmt.Sprintf("changed %d", count.Read()))
+
+			OnRenderSettled(func() {
+				log = append(log, "settled")
+			})
+
+			OnCleanup(func() {
+				log = append(log, "cleanup")
+			})
+		})
+
+		count.Write(10)
+
+		assert.Equal(t, []string{
+			"changed 0",
+			"cleanup",
+			"changed 10",
+			"settled",
+			"settled", // was also registered during first run, but is only called after a flush
 		}, log)
 	})
 }

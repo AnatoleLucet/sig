@@ -157,11 +157,8 @@ func (o *Owner) Run(fn func() error) error { return o.owner.Run(fn) }
 // Dispose this owner and all its children.
 func (o *Owner) Dispose() { o.owner.Dispose() }
 
-// Add a cleanup function to be called ONCE when the owner is disposed.
+// Add a cleanup function to be called ONCE when the node is recomputed, or when the owner is disposed.
 func (o *Owner) OnCleanup(fn func()) { o.owner.OnCleanup(fn) }
-
-// Add a function to be called when the owner is disposed (each time Dispose is called).
-func (o *Owner) OnDispose(fn func()) { o.owner.OnDispose(fn) }
 
 // Add a function to be called when a panic occurs within this owner.
 // If no error listener is registered, the panic will propagate as usual.
