@@ -1,6 +1,5 @@
 #!/bin/sh
 
-
 echo "Running standard tests..."
 go test -v -race $@
 

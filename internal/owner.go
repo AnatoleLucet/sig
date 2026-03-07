@@ -12,7 +12,7 @@ type Owner struct {
 	disposeListeners []func()
 
 	// the context values of this owner
-	context map[*contextID]any
+	context map[uint64]any
 
 	parent       *Owner
 	prevSibling  *Owner
@@ -23,7 +23,7 @@ type Owner struct {
 func (r *Runtime) NewOwner() *Owner {
 	o := &Owner{
 		cleanups: make([]func(), 0),
-		context:  make(map[*contextID]any),
+		context:  make(map[uint64]any),
 	}
 
 	if parent := r.CurrentOwner(); parent != nil {

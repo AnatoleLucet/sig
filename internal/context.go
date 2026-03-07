@@ -1,15 +1,13 @@
 package internal
 
-type contextID struct{}
-
 type Context struct {
-	id           *contextID
+	id           uint64
 	defaultValue any
 }
 
 func (r *Runtime) NewContext(defaultValue any) *Context {
 	return &Context{
-		id:           &contextID{},
+		id:           newID(),
 		defaultValue: defaultValue,
 	}
 }

@@ -31,4 +31,29 @@ func TestContext(t *testing.T) {
 
 		assert.Equal(t, "default", ctx.Value())
 	})
+
+	t.Run("interleaving contexts", func(t *testing.T) {
+		ctx1 := NewContext("ctx1 default")
+		ctx2 := NewContext("ctx2 default")
+
+		parent := NewOwner()
+		err := parent.Run(func() error {
+			ctx1.Set("ctx1 value")
+
+			assert.Equal(t, "ctx1 value", ctx1.Value())
+			assert.Equal(t, "ctx2 default", ctx2.Value())
+
+			return NewOwner().Run(func() error {
+				ctx2.Set("ctx2 value")
+
+				assert.Equal(t, "ctx1 value", ctx1.Value())
+				assert.Equal(t, "ctx2 value", ctx2.Value())
+				return nil
+			})
+		})
+
+		assert.NoError(t, err)
+		assert.Equal(t, "ctx1 default", ctx1.Value())
+		assert.Equal(t, "ctx2 default", ctx2.Value())
+	})
 }
