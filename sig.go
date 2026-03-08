@@ -11,15 +11,30 @@ func as[T any](v any) T {
 	return v.(T)
 }
 
+type SignalOptions[T any] struct {
+	Predicate func(a, b T) bool
+}
+
 type Signal[T any] struct {
 	signal *internal.Signal
 }
 
 // NewSignal creates your tipical read/write signal.
-func NewSignal[T any](initial T) *Signal[T] {
-	return &Signal[T]{
-		internal.GetRuntime().NewSignal(initial),
+func NewSignal[T any](initial T, options ...SignalOptions[T]) *Signal[T] {
+	signal := internal.GetRuntime().NewSignal(initial)
+
+	var opts SignalOptions[T]
+	if len(options) > 0 {
+		opts = options[0]
 	}
+
+	if opts.Predicate != nil {
+		signal.SetPredicate(func(a, b any) bool {
+			return opts.Predicate(as[T](a), as[T](b))
+		})
+	}
+
+	return &Signal[T]{signal}
 }
 
 // Read the current value of the signal, tracking the dependency if within a reactive context.

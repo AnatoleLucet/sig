@@ -18,8 +18,7 @@ func TestContext(t *testing.T) {
 	t.Run("inherit value from parent owner", func(t *testing.T) {
 		ctx := NewContext("default")
 
-		parent := NewOwner()
-		err := parent.Run(func() error {
+		err := NewOwner().Run(func() error {
 			ctx.Set("parent value")
 
 			return NewOwner().Run(func() error {
@@ -36,8 +35,7 @@ func TestContext(t *testing.T) {
 		ctx1 := NewContext("ctx1 default")
 		ctx2 := NewContext("ctx2 default")
 
-		parent := NewOwner()
-		err := parent.Run(func() error {
+		err := NewOwner().Run(func() error {
 			ctx1.Set("ctx1 value")
 
 			assert.Equal(t, "ctx1 value", ctx1.Value())

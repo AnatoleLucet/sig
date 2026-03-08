@@ -14,12 +14,15 @@ type Signal struct {
 	pendingValue *any // nil if no pending value
 
 	subsHead *DependencyLink
+
+	predicate func(a, b any) bool
 }
 
 func (r *Runtime) NewSignal(initial any) *Signal {
 	s := &Signal{
 		ReactiveNode: r.NewNode(),
 		value:        initial,
+		predicate:    defaultPredicate,
 	}
 
 	return s
@@ -33,7 +36,7 @@ func (s *Signal) Read() any {
 
 func (s *Signal) Write(v any) {
 	s.mu.Lock()
-	if isEqual(s.valueUnsafe(), v) {
+	if s.equals(v) {
 		s.mu.Unlock()
 		return
 	}
@@ -132,9 +135,17 @@ func (s *Signal) removeSubLink(link *DependencyLink) {
 	link.nextSub = nil
 }
 
-func isEqual(a, b any) (result bool) {
-	// todo: might want to make it configurable instead of always using reflect.DeepEqual
+func (s *Signal) SetPredicate(predicate func(a, b any) bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.predicate = predicate
+}
 
+func (s *Signal) equals(value any) (result bool) {
+	return s.predicate(s.valueUnsafe(), value)
+}
+
+func defaultPredicate(a, b any) bool {
 	if a == nil && b == nil {
 		return true
 	}

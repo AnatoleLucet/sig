@@ -120,7 +120,7 @@ func (r *Runtime) recompute(node *Computed) {
 
 	r.tracker.RunWithComputation(node, fn)
 
-	if !isEqual(oldValue, node.Value()) {
+	if !node.equals(oldValue) {
 		r.heap.InsertAll(node.Subs())
 	}
 }

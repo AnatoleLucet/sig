@@ -63,6 +63,36 @@ func TestComputed(t *testing.T) {
 		}, log)
 	})
 
+	t.Run("custom predicate prevents propagation", func(t *testing.T) {
+		log := []string{}
+
+		count := NewSignal(1, SignalOptions[int]{
+			Predicate: func(a, b int) bool {
+				log = append(log, fmt.Sprintf("comparing %d and %d", a, b))
+				return b%2 == 0 // propagate only if new value is odd
+			},
+		})
+		double := NewComputed(func() int {
+			log = append(log, "computing double")
+			return count.Read() * 2
+		})
+
+		assert.Equal(t, 1, count.Read())
+		assert.Equal(t, 2, double.Read())
+
+		count.Write(2) // shouldn't propagate
+		count.Write(3)
+		count.Write(4) // shouldn't propagate
+
+		assert.Equal(t, []string{
+			"computing double",
+			"comparing 1 and 2",
+			"comparing 1 and 3", // should still be at 1 since 2 didn't propagate
+			"computing double",
+			"comparing 3 and 4",
+		}, log)
+	})
+
 	t.Run("disposes nested effects on recompute", func(t *testing.T) {
 		t.Skip("WIP")
 
